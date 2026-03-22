@@ -18,7 +18,9 @@
 - 编辑客户端属性
 - 删除客户端
 - 双击查看客户端详情（支持表格/文本两种显示模式）
-<img width="1200" height="800" alt="image" src="https://github.com/user-attachments/assets/7d3d0a72-ede9-4a13-9483-7101ae8d050f" />
+<img width="1200" height="800" alt="image" src="https://github.com/user-attachments/assets/c7a9f44c-161e-45f7-b6ac-50f1b9b50163" />
+<img width="600" height="500" alt="image" src="https://github.com/user-attachments/assets/f4304b3f-050d-443c-b1b2-05e4c4f79bc5" />
+
 
 
 ### 用户管理
@@ -29,7 +31,9 @@
 - 管理用户自定义属性
 - 双击查看用户详情（支持表格/文本两种显示模式）
 - 在首页列表显示用户表示名（displayName）
-<img width="1200" height="800" alt="image" src="https://github.com/user-attachments/assets/61deaef8-602d-4603-8ee7-ec4f7e3d1a8a" />
+<img width="1184" height="804" alt="image" src="https://github.com/user-attachments/assets/ad6af9d1-4e5e-4a7f-a5b3-a172f1c651c4" />
+<img width="600" height="550" alt="image" src="https://github.com/user-attachments/assets/1cb24497-b33f-468c-ba9f-6ac28aee2a4d" />
+
 
 
 ### 界面特性
