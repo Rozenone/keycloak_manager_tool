@@ -10,6 +10,7 @@
 - 启动时选择连接配置
 - 支持跳过 SSL/TLS 证书验证（适用于自签名证书）
 - 配置本地加密存储
+<img width="500" height="400" alt="image" src="https://github.com/user-attachments/assets/9ce9e19a-6c9f-48be-a7ac-e0366bf1b0ac" />
 
 ### 客户端管理
 - 查看客户端列表
@@ -17,6 +18,8 @@
 - 编辑客户端属性
 - 删除客户端
 - 双击查看客户端详情（支持表格/文本两种显示模式）
+<img width="1200" height="800" alt="image" src="https://github.com/user-attachments/assets/7d3d0a72-ede9-4a13-9483-7101ae8d050f" />
+
 
 ### 用户管理
 - 用户列表分页显示
@@ -26,11 +29,16 @@
 - 管理用户自定义属性
 - 双击查看用户详情（支持表格/文本两种显示模式）
 - 在首页列表显示用户表示名（displayName）
+<img width="1200" height="800" alt="image" src="https://github.com/user-attachments/assets/61deaef8-602d-4603-8ee7-ec4f7e3d1a8a" />
+
 
 ### 界面特性
 - 错误弹窗文字可复制
 - 详情页支持表格/文本两种显示模式
 - 文本模式下可自由复制内容
+<img width="618" height="545" alt="image" src="https://github.com/user-attachments/assets/5e8dc0e6-15b3-4513-a379-69599b7cad81" />
+<img width="618" height="532" alt="image" src="https://github.com/user-attachments/assets/11b22f2a-4791-4887-abc1-c8bd58e5e4d7" />
+
 
 ## 技术栈
 
