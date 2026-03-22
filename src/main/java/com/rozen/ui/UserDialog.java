@@ -125,6 +125,9 @@ public class UserDialog extends JDialog {
         };
         attributesTable = new JTable(attributesTableModel);
         attributesTable.setRowHeight(25);
+        
+        // 确保编辑后的值被保存
+        attributesTable.putClientProperty("terminateEditOnFocusLost", Boolean.TRUE);
 
         JScrollPane scrollPane = new JScrollPane(attributesTable);
         panel.add(scrollPane, BorderLayout.CENTER);
@@ -181,6 +184,11 @@ public class UserDialog extends JDialog {
     }
 
     private void onOk(ActionEvent e) {
+        // 停止表格编辑，确保值被保存
+        if (attributesTable.isEditing()) {
+            attributesTable.getCellEditor().stopCellEditing();
+        }
+        
         String username = usernameField.getText().trim();
         if (username.isEmpty()) {
             showError(this, "错误", "用户名不能为空");
@@ -197,14 +205,27 @@ public class UserDialog extends JDialog {
         // 收集属性
         Map<String, List<String>> attributes = new HashMap<>();
         for (int i = 0; i < attributesTableModel.getRowCount(); i++) {
-            String key = (String) attributesTableModel.getValueAt(i, 0);
-            String value = (String) attributesTableModel.getValueAt(i, 1);
-            if (key != null && !key.trim().isEmpty()) {
+            Object keyObj = attributesTableModel.getValueAt(i, 0);
+            Object valueObj = attributesTableModel.getValueAt(i, 1);
+            String key = keyObj != null ? keyObj.toString().trim() : "";
+            String value = valueObj != null ? valueObj.toString().trim() : "";
+            
+            System.out.println("[DEBUG] UserDialog row " + i + ": key=" + key + ", value=" + value);
+            
+            if (!key.isEmpty()) {
                 // 支持逗号分隔的多个值
-                List<String> values = Arrays.asList(value.split(","));
-                attributes.put(key.trim(), values.stream().map(String::trim).collect(java.util.stream.Collectors.toList()));
+                List<String> values;
+                if (value.isEmpty()) {
+                    values = Collections.singletonList("");
+                } else {
+                    values = Arrays.asList(value.split(","));
+                    values = values.stream().map(String::trim).collect(java.util.stream.Collectors.toList());
+                }
+                attributes.put(key, values);
+                System.out.println("[DEBUG] UserDialog added attribute: " + key + "=" + values);
             }
         }
+        System.out.println("[DEBUG] UserDialog final attributes: " + attributes);
         userInfo.setAttributes(attributes);
 
         confirmed = true;

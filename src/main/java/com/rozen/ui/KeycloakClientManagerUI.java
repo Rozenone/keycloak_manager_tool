@@ -2,6 +2,7 @@ package com.rozen.ui;
 
 import com.rozen.service.ConfigStorage;
 import com.rozen.service.KeycloakService;
+import com.rozen.service.KeycloakService.PageResult;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
@@ -10,11 +11,15 @@ import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
+import java.net.URI;
 import java.util.List;
 
 import static com.rozen.ui.DialogUtil.*;
 
 public class KeycloakClientManagerUI extends JFrame {
+
+    private static final String VERSION = "1.0.0";
+    private static final String GITHUB_URL = "https://github.com/Rozenone/keycloak_manager_tool";
 
     private KeycloakService keycloakService;
     private ConfigStorage configStorage;
@@ -28,6 +33,16 @@ public class KeycloakClientManagerUI extends JFrame {
     private JTable userTable;
     private DefaultTableModel userTableModel;
     private JTextField userSearchField;
+    private JComboBox<String> searchTypeCombo;
+    private JCheckBox exactMatchCheckBox;
+
+    // 分页相关
+    private int currentPage = 0;
+    private int pageSize = 20;
+    private int totalUsers = 0;
+    private JLabel pageInfoLabel;
+    private JButton prevPageBtn;
+    private JButton nextPageBtn;
 
     // 连接配置
     private JTextField serverUrlField;
@@ -42,15 +57,75 @@ public class KeycloakClientManagerUI extends JFrame {
         this.configStorage = new ConfigStorage();
 
         setTitle("Keycloak 管理工具 - " + config.getName());
-        setSize(1100, 750);
+        setSize(1200, 800);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setLocationRelativeTo(null);
 
+        initMenuBar();
         initComponents();
 
         // 自动填充配置并连接
         populateConfigFields(config);
         autoConnect();
+    }
+
+    private void initMenuBar() {
+        JMenuBar menuBar = new JMenuBar();
+
+        // 文件菜单
+        JMenu fileMenu = new JMenu("文件");
+        JMenuItem exitItem = new JMenuItem("退出");
+        exitItem.addActionListener(e -> System.exit(0));
+        fileMenu.add(exitItem);
+
+        // 帮助菜单
+        JMenu helpMenu = new JMenu("帮助");
+
+        JMenuItem githubItem = new JMenuItem("GitHub 仓库");
+        githubItem.addActionListener(e -> openGitHub());
+        helpMenu.add(githubItem);
+
+        helpMenu.addSeparator();
+
+        JMenuItem aboutItem = new JMenuItem("关于");
+        aboutItem.addActionListener(e -> showAbout());
+        helpMenu.add(aboutItem);
+
+        menuBar.add(fileMenu);
+        menuBar.add(helpMenu);
+
+        setJMenuBar(menuBar);
+    }
+
+    private void openGitHub() {
+        try {
+            Desktop.getDesktop().browse(new URI(GITHUB_URL));
+        } catch (Exception ex) {
+            showError(this, "错误", "无法打开浏览器: " + ex.getMessage());
+        }
+    }
+
+    private void showAbout() {
+        String message = "Keycloak 管理工具\n" +
+                "版本: " + VERSION + "\n" +
+                "\n" +
+                "GitHub: " + GITHUB_URL + "\n" +
+                "\n" +
+                "功能:\n" +
+                "- Keycloak 客户端管理\n" +
+                "- 用户管理和搜索\n" +
+                "- 连接配置本地存储\n" +
+                "- SSL 证书验证跳过\n" +
+                "- 作者邮箱:rozenone@foxmail.com\n" +
+                "\n" +
+                "© 2026 Rozenone";
+
+        JTextArea textArea = new JTextArea(message);
+        textArea.setEditable(false);
+        textArea.setBackground(UIManager.getColor("Panel.background"));
+        textArea.setFont(new Font(Font.MONOSPACED, Font.PLAIN, 12));
+
+        JOptionPane.showMessageDialog(this, textArea, "关于", JOptionPane.INFORMATION_MESSAGE);
     }
 
     private void initComponents() {
@@ -241,16 +316,28 @@ public class KeycloakClientManagerUI extends JFrame {
 
         gbc.gridx = 1;
         gbc.weightx = 1.0;
-        JComboBox<String> searchTypeCombo = new JComboBox<>(new String[]{"全部", "ID", "用户名", "邮箱", "自定义属性"});
-        searchTypeCombo.setName("searchType");
+        searchTypeCombo = new JComboBox<>(new String[]{"全部", "ID", "用户名", "邮箱", "自定义属性"});
         searchPanel.add(searchTypeCombo, gbc);
 
         // 精确匹配选项
         gbc.gridx = 2;
         gbc.weightx = 0;
-        JCheckBox exactMatchCheckBox = new JCheckBox("精确匹配");
-        exactMatchCheckBox.setName("exactMatch");
+        exactMatchCheckBox = new JCheckBox("精确匹配");
         searchPanel.add(exactMatchCheckBox, gbc);
+
+        // 每页数量
+        gbc.gridx = 3;
+        searchPanel.add(new JLabel("每页:"), gbc);
+
+        gbc.gridx = 4;
+        JComboBox<Integer> pageSizeCombo = new JComboBox<>(new Integer[]{10, 20, 50, 100});
+        pageSizeCombo.setSelectedItem(pageSize);
+        pageSizeCombo.addActionListener(e -> {
+            pageSize = (Integer) pageSizeCombo.getSelectedItem();
+            currentPage = 0;
+            loadUsers();
+        });
+        searchPanel.add(pageSizeCombo, gbc);
 
         row++;
 
@@ -269,16 +356,18 @@ public class KeycloakClientManagerUI extends JFrame {
         gbc.gridx = 2;
         gbc.weightx = 0;
         JButton searchBtn = new JButton("搜索");
-        searchBtn.addActionListener(e -> onSearchUsers(searchTypeCombo, exactMatchCheckBox));
+        searchBtn.addActionListener(e -> searchUsers());
         searchPanel.add(searchBtn, gbc);
 
         // 清除按钮
         gbc.gridx = 3;
+        gbc.gridwidth = 2;
         JButton clearBtn = new JButton("清除");
         clearBtn.addActionListener(e -> {
             userSearchField.setText("");
             searchTypeCombo.setSelectedIndex(0);
             exactMatchCheckBox.setSelected(false);
+            currentPage = 0;
             loadUsers();
         });
         searchPanel.add(clearBtn, gbc);
@@ -286,7 +375,7 @@ public class KeycloakClientManagerUI extends JFrame {
         panel.add(searchPanel, BorderLayout.NORTH);
 
         // 用户表格
-        String[] columns = {"用户ID", "用户名", "邮箱", "姓名", "启用状态", "邮箱验证"};
+        String[] columns = {"用户ID", "用户名", "表示名", "邮箱", "姓名", "启用状态", "邮箱验证"};
         userTableModel = new DefaultTableModel(columns, 0) {
             @Override
             public boolean isCellEditable(int row, int column) {
@@ -313,24 +402,53 @@ public class KeycloakClientManagerUI extends JFrame {
         JScrollPane scrollPane = new JScrollPane(userTable);
         panel.add(scrollPane, BorderLayout.CENTER);
 
-        // 操作按钮面板
-        JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
+        // 分页控制面板
+        JPanel paginationPanel = new JPanel(new FlowLayout(FlowLayout.CENTER));
 
+        prevPageBtn = new JButton("上一页");
+        prevPageBtn.addActionListener(e -> {
+            if (currentPage > 0) {
+                currentPage--;
+                loadUsers();
+            }
+        });
+        paginationPanel.add(prevPageBtn);
+
+        pageInfoLabel = new JLabel("第 1 页 / 共 1 页 (共 0 条)");
+        paginationPanel.add(pageInfoLabel);
+
+        nextPageBtn = new JButton("下一页");
+        nextPageBtn.addActionListener(e -> {
+            int totalPages = (int) Math.ceil((double) totalUsers / pageSize);
+            if (currentPage < totalPages - 1) {
+                currentPage++;
+                loadUsers();
+            }
+        });
+        paginationPanel.add(nextPageBtn);
+
+        // 操作按钮面板
+        JPanel buttonPanel = new JPanel(new BorderLayout());
+
+        JPanel leftButtonPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
         JButton refreshBtn = new JButton("刷新列表");
         refreshBtn.addActionListener(e -> loadUsers());
-        buttonPanel.add(refreshBtn);
+        leftButtonPanel.add(refreshBtn);
 
         JButton addBtn = new JButton("新增用户");
         addBtn.addActionListener(this::onAddUser);
-        buttonPanel.add(addBtn);
+        leftButtonPanel.add(addBtn);
 
         JButton editBtn = new JButton("编辑");
         editBtn.addActionListener(this::onEditUser);
-        buttonPanel.add(editBtn);
+        leftButtonPanel.add(editBtn);
 
         JButton deleteBtn = new JButton("删除");
         deleteBtn.addActionListener(this::onDeleteUser);
-        buttonPanel.add(deleteBtn);
+        leftButtonPanel.add(deleteBtn);
+
+        buttonPanel.add(leftButtonPanel, BorderLayout.WEST);
+        buttonPanel.add(paginationPanel, BorderLayout.EAST);
 
         panel.add(buttonPanel, BorderLayout.SOUTH);
 
@@ -583,31 +701,15 @@ public class KeycloakClientManagerUI extends JFrame {
             return;
         }
 
-        userTableModel.setRowCount(0);
         try {
-            List<UserInfo> users = keycloakService.getUsers();
-            displayUsers(users);
+            PageResult<UserInfo> result = keycloakService.getUsers(currentPage, pageSize);
+            displayUsers(result);
         } catch (Exception ex) {
             showError(this, "加载用户失败", ex.getMessage());
         }
     }
 
-    private void displayUsers(List<UserInfo> users) {
-        userTableModel.setRowCount(0);
-        for (UserInfo user : users) {
-            userTableModel.addRow(new Object[]{
-                user.getId(),
-                user.getUsername(),
-                user.getEmail() != null ? user.getEmail() : "",
-                user.getFullName(),
-                user.isEnabled() ? "启用" : "禁用",
-                user.isEmailVerified() ? "是" : "否"
-            });
-        }
-        statusLabel.setText("共 " + users.size() + " 个用户");
-    }
-
-    private void onSearchUsers(JComboBox<String> searchTypeCombo, JCheckBox exactMatchCheckBox) {
+    private void searchUsers() {
         if (keycloakService == null) {
             showWarning(this, "提示", "请先连接到 Keycloak");
             return;
@@ -615,6 +717,7 @@ public class KeycloakClientManagerUI extends JFrame {
 
         String search = userSearchField.getText().trim();
         if (search.isEmpty()) {
+            currentPage = 0;
             loadUsers();
             return;
         }
@@ -623,31 +726,60 @@ public class KeycloakClientManagerUI extends JFrame {
         boolean exactMatch = exactMatchCheckBox.isSelected();
 
         try {
-            List<UserInfo> users;
+            PageResult<UserInfo> result;
 
             if ("自定义属性".equals(searchType)) {
-                // 按自定义属性搜索，格式：属性名=属性值
                 if (search.contains("=")) {
                     String[] parts = search.split("=", 2);
                     String attrName = parts[0].trim();
                     String attrValue = parts[1].trim();
-                    users = keycloakService.searchUsersByAttribute(attrName, attrValue);
+                    List<UserInfo> users = keycloakService.searchUsersByAttribute(attrName, attrValue);
+                    result = new PageResult<>(users, users.size(), 0, users.size());
                 } else {
                     showWarning(this, "提示", "自定义属性搜索格式：属性名=属性值");
                     return;
                 }
             } else {
-                // 转换搜索类型
                 String type = "全部".equals(searchType) ? "all" : 
                               "ID".equals(searchType) ? "id" :
                               "用户名".equals(searchType) ? "username" : "email";
-                users = keycloakService.searchUsers(search, type, exactMatch);
+                result = keycloakService.searchUsers(search, type, exactMatch, currentPage, pageSize);
             }
 
-            displayUsers(users);
+            displayUsers(result);
         } catch (Exception ex) {
             showError(this, "搜索用户失败", ex.getMessage());
         }
+    }
+
+    private void displayUsers(PageResult<UserInfo> result) {
+        userTableModel.setRowCount(0);
+        List<UserInfo> users = result.getContent();
+        totalUsers = result.getTotalCount();
+
+        for (UserInfo user : users) {
+            userTableModel.addRow(new Object[]{
+                user.getId(),
+                user.getUsername(),
+                user.getDisplayName(),
+                user.getEmail() != null ? user.getEmail() : "",
+                user.getFullName(),
+                user.isEnabled() ? "启用" : "禁用",
+                user.isEmailVerified() ? "是" : "否"
+            });
+        }
+
+        // 更新分页信息
+        int totalPages = result.getTotalPages();
+        int currentPageNum = result.getPage() + 1;
+        pageInfoLabel.setText(String.format("第 %d 页 / 共 %d 页 (共 %d 条)", 
+            currentPageNum, Math.max(1, totalPages), totalUsers));
+
+        // 更新按钮状态
+        prevPageBtn.setEnabled(result.getPage() > 0);
+        nextPageBtn.setEnabled(result.getPage() < totalPages - 1);
+
+        statusLabel.setText(String.format("共 %d 个用户，当前显示 %d 条", totalUsers, users.size()));
     }
 
     private void onAddUser(ActionEvent e) {
