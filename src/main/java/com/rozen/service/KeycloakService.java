@@ -5,6 +5,8 @@ import com.rozen.ui.UserInfo;
 import jakarta.ws.rs.core.Response;
 import org.jboss.resteasy.client.jaxrs.ResteasyClient;
 import org.jboss.resteasy.client.jaxrs.ResteasyClientBuilder;
+import org.jboss.resteasy.plugins.providers.jackson.ResteasyJackson2Provider;
+import org.jboss.resteasy.plugins.providers.FormUrlEncodedProvider;
 import org.keycloak.admin.client.Keycloak;
 import org.keycloak.admin.client.KeycloakBuilder;
 import org.keycloak.admin.client.resource.ClientsResource;
@@ -54,11 +56,13 @@ public class KeycloakService {
                 SSLContext sslContext = SSLContext.getInstance("TLS");
                 sslContext.init(null, trustAllCerts, new java.security.SecureRandom());
 
-                // 创建自定义的 ResteasyClient，配置 SSL
-                ResteasyClient client = ((ResteasyClientBuilder) ResteasyClientBuilder.newBuilder())
-                        .sslContext(sslContext)
+                // 创建自定义的 ResteasyClient，配置 SSL 并注册 Jackson Provider
+                ResteasyClientBuilder clientBuilder = (ResteasyClientBuilder) ResteasyClientBuilder.newBuilder();
+                clientBuilder.sslContext(sslContext)
                         .hostnameVerifier((hostname, session) -> true)
-                        .build();
+                        .register(ResteasyJackson2Provider.class)
+                        .register(FormUrlEncodedProvider.class);
+                ResteasyClient client = (ResteasyClient) clientBuilder.build();
 
                 builder.resteasyClient(client);
             }
