@@ -2,7 +2,11 @@ package com.rozen.service;
 
 import com.rozen.ui.ClientInfo;
 import com.rozen.ui.UserInfo;
+
+import jakarta.ws.rs.client.Client;
+import jakarta.ws.rs.client.ClientBuilder;
 import jakarta.ws.rs.core.Response;
+
 import org.jboss.resteasy.client.jaxrs.ResteasyClient;
 import org.jboss.resteasy.client.jaxrs.ResteasyClientBuilder;
 import org.jboss.resteasy.plugins.providers.jackson.ResteasyJackson2Provider;
@@ -19,16 +23,21 @@ import org.keycloak.representations.idm.UserRepresentation;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.TrustManager;
 import javax.net.ssl.X509TrustManager;
+
 import java.security.cert.X509Certificate;
 import java.util.*;
 import java.util.stream.Collectors;
 
-public class KeycloakService {
+public class KeycloakService implements AutoCloseable {
 
     private final Keycloak keycloak;
     private final String realm;
 
-    public KeycloakService(String serverUrl, String realm, String username, String password, boolean skipSslVerify) {
+    /**
+     * 使用用户名密码方式连接
+     */
+    public KeycloakService(String serverUrl, String realm, String username, String password,
+                           boolean useProxy, String proxyProtocol, String proxyHost, int proxyPort, boolean skipSslVerify) {
         this.realm = realm;
 
         try {
@@ -39,38 +48,114 @@ public class KeycloakService {
                     .password(password)
                     .clientId("admin-cli");
 
-            if (skipSslVerify) {
-                // 创建允许所有 SSL 证书的 TrustManager
-                TrustManager[] trustAllCerts = new TrustManager[]{
-                    new X509TrustManager() {
-                        public X509Certificate[] getAcceptedIssuers() {
-                            return new X509Certificate[0];
-                        }
-                        public void checkClientTrusted(X509Certificate[] certs, String authType) {
-                        }
-                        public void checkServerTrusted(X509Certificate[] certs, String authType) {
-                        }
-                    }
-                };
-
-                SSLContext sslContext = SSLContext.getInstance("TLS");
-                sslContext.init(null, trustAllCerts, new java.security.SecureRandom());
-
-                // 创建自定义的 ResteasyClient，配置 SSL 并注册 Jackson Provider
-                ResteasyClientBuilder clientBuilder = (ResteasyClientBuilder) ResteasyClientBuilder.newBuilder();
-                clientBuilder.sslContext(sslContext)
-                        .hostnameVerifier((hostname, session) -> true)
-                        .register(ResteasyJackson2Provider.class)
-                        .register(FormUrlEncodedProvider.class);
-                ResteasyClient client = (ResteasyClient) clientBuilder.build();
-
-                builder.resteasyClient(client);
-            }
+            // 创建 HTTP 客户端
+            Client client = createClient(useProxy, proxyProtocol, proxyHost, proxyPort, skipSslVerify);
+            builder.resteasyClient(client);
 
             this.keycloak = builder.build();
         } catch (Exception e) {
             throw new RuntimeException("初始化 Keycloak 客户端失败: " + e.getMessage(), e);
         }
+    }
+
+    /**
+     * 使用客户端凭据方式连接
+     */
+    public KeycloakService(String serverUrl, String realm, String clientId, String clientSecret,
+                           boolean useProxy, String proxyProtocol, String proxyHost, int proxyPort, boolean skipSslVerify,
+                           boolean isClientCredentials) {
+        this.realm = realm;
+
+        try {
+            KeycloakBuilder builder = KeycloakBuilder.builder()
+                    .serverUrl(serverUrl)
+                    .realm("master")
+                    .clientId(clientId)
+                    .clientSecret(clientSecret)
+                    .grantType(org.keycloak.OAuth2Constants.CLIENT_CREDENTIALS);
+
+            // 创建 HTTP 客户端
+            Client client = createClient(useProxy, proxyProtocol, proxyHost, proxyPort, skipSslVerify);
+            builder.resteasyClient(client);
+
+            this.keycloak = builder.build();
+        } catch (Exception e) {
+            throw new RuntimeException("初始化 Keycloak 客户端失败: " + e.getMessage(), e);
+        }
+    }
+
+    /**
+     * 使用 ConnectionConfig 创建服务
+     */
+    public static KeycloakService fromConfig(ConfigStorage.ConnectionConfig config) {
+        String proxyProtocol = config.getProxyProtocol() != null ? config.getProxyProtocol().name() : "HTTP";
+        if (config.getAuthType() == ConfigStorage.AuthType.CLIENT_CREDENTIALS) {
+            return new KeycloakService(
+                    config.getServerUrl(),
+                    config.getRealm(),
+                    config.getClientId(),
+                    config.getClientSecret(),
+                    config.isUseProxy(),
+                    proxyProtocol,
+                    config.getProxyHost(),
+                    config.getProxyPort(),
+                    config.isSkipSslVerify(),
+                    true
+            );
+        } else {
+            return new KeycloakService(
+                    config.getServerUrl(),
+                    config.getRealm(),
+                    config.getUsername(),
+                    config.getPassword(),
+                    config.isUseProxy(),
+                    proxyProtocol,
+                    config.getProxyHost(),
+                    config.getProxyPort(),
+                    config.isSkipSslVerify()
+            );
+        }
+    }
+
+    private Client createClient(boolean useProxy, String proxyProtocol, String proxyHost, int proxyPort, boolean skipSslVerify) throws Exception {
+        ClientBuilder clientBuilder = ClientBuilder.newBuilder()
+                .register(ResteasyJackson2Provider.class)
+                .register(FormUrlEncodedProvider.class);
+
+        // 配置代理
+        if (useProxy && proxyHost != null && !proxyHost.trim().isEmpty()) {
+            // 设置代理协议（HTTP 或 HTTPS）
+            String proxyScheme = "HTTPS".equalsIgnoreCase(proxyProtocol) ? "https" : "http";
+            clientBuilder.property("org.jboss.resteasy.jaxrs.client.proxy.host", proxyHost)
+                    .property("org.jboss.resteasy.jaxrs.client.proxy.port", proxyPort)
+                    .property("org.jboss.resteasy.jaxrs.client.proxy.scheme", proxyScheme);
+        }
+
+        // 配置 SSL
+        if (skipSslVerify) {
+            // 创建允许所有 SSL 证书的 TrustManager
+            TrustManager[] trustAllCerts = new TrustManager[]{
+                    new X509TrustManager() {
+                        public X509Certificate[] getAcceptedIssuers() {
+                            return new X509Certificate[0];
+                        }
+
+                        public void checkClientTrusted(X509Certificate[] certs, String authType) {
+                        }
+
+                        public void checkServerTrusted(X509Certificate[] certs, String authType) {
+                        }
+                    }
+            };
+
+            SSLContext sslContext = SSLContext.getInstance("TLS");
+            sslContext.init(null, trustAllCerts, new java.security.SecureRandom());
+
+            clientBuilder.sslContext(sslContext)
+                    .hostnameVerifier((hostname, session) -> true);
+        }
+
+        return clientBuilder.build();
     }
 
     // ==================== 客户端相关方法 ====================
@@ -130,7 +215,7 @@ public class KeycloakService {
         client.setServiceAccountsEnabled(false);
 
         RealmResource realmResource = keycloak.realm(realm);
-        
+
         try {
             realmResource.clients().create(client);
         } catch (Exception e) {
@@ -480,9 +565,11 @@ public class KeycloakService {
         return info;
     }
 
+    @Override
     public void close() {
         if (keycloak != null) {
             keycloak.close();
         }
     }
 }
+
