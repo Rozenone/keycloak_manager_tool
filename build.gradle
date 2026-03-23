@@ -5,6 +5,11 @@ plugins {
 group = 'com.rozen'
 version = '1.0-SNAPSHOT'
 
+java {
+    sourceCompatibility = JavaVersion.VERSION_11
+    targetCompatibility = JavaVersion.VERSION_11
+}
+
 repositories {
     mavenCentral()
 }
@@ -21,11 +26,21 @@ test {
     useJUnitPlatform()
 }
 
+// 配置编译选项
+tasks.withType(JavaCompile) {
+    options.encoding = 'UTF-8'
+    options.release = 11
+}
+
 // 配置 Fat JAR
 jar {
     manifest {
         attributes(
-            'Main-Class': 'com.rozen.Main'
+            'Main-Class': 'com.rozen.Main',
+            'Implementation-Version': version,
+            'Built-By': System.getProperty('user.name'),
+            'Created-By': "Gradle ${gradle.gradleVersion}",
+            'Build-Jdk': "${System.getProperty('java.version')} (${System.getProperty('java.vendor')})"
         )
     }
     from {
