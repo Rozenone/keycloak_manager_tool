@@ -355,20 +355,8 @@ public class KeycloakService {
         UsersResource usersResource = realmResource.users();
 
         try {
-            // 使用 list 方法获取所有用户（包含属性），然后筛选
-            List<UserRepresentation> allUsers = usersResource.list(0, 10000);
-            if (allUsers != null && !allUsers.isEmpty()) {
-                for (UserRepresentation user : allUsers) {
-                    if (userId.equals(user.getId())) {
-                        System.out.println("[DEBUG] getUserById found user via list: " + user.getUsername() + ", attrs: " + user.getAttributes());
-                        return convertToUserInfo(user);
-                    }
-                }
-            }
-            
-            // 如果 list 找不到，尝试直接获取（可能不包含属性）
             UserRepresentation user = usersResource.get(userId).toRepresentation();
-            System.out.println("[DEBUG] getUserById fallback to direct get: " + user.getUsername() + ", attrs: " + user.getAttributes());
+            System.out.println("[DEBUG] getUserById found user: " + user.getUsername() + ", attrs: " + user.getAttributes());
             return convertToUserInfo(user);
         } catch (Exception e) {
             System.out.println("[DEBUG] getUserById error: " + e.getMessage());
