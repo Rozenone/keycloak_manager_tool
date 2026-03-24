@@ -1344,9 +1344,9 @@ public class KeycloakClientManagerUI extends JFrame {
     private void showUserDetail(int row) {
         String userId = (String) userTableModel.getValueAt(row, 0);
         UserInfo userInfo = keycloakService.getUserById(userId);
-        
+
         if (userInfo != null) {
-            UserDetailDialog dialog = new UserDetailDialog(this, userInfo);
+            UserDetailDialog dialog = new UserDetailDialog(this, userInfo, currentConfig.getServerUrl(), currentConfig.getRealm());
             dialog.setVisible(true);
         }
     }

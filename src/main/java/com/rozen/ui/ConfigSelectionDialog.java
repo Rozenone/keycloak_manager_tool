@@ -53,6 +53,10 @@ public class ConfigSelectionDialog extends JDialog {
     private JPanel clientCredentialsPanel;
     private JPanel authCardPanel;
 
+    // 编辑模式标记
+    private boolean isEditMode = false;
+    private String editingConfigName = null;
+
     public ConfigSelectionDialog(JFrame parent) {
         super(parent, "选择 Keycloak 连接配置", true);
         this.configStorage = new ConfigStorage();
@@ -114,11 +118,32 @@ public class ConfigSelectionDialog extends JDialog {
             }
         });
 
+        // 添加双击监听 - 双击自动连接
+        configList.addMouseListener(new java.awt.event.MouseAdapter() {
+            @Override
+            public void mouseClicked(java.awt.event.MouseEvent e) {
+                if (e.getClickCount() == 2) {
+                    String selectedName = configList.getSelectedValue();
+                    if (selectedName != null) {
+                        selectedConfig = configStorage.loadConfig(selectedName);
+                        if (selectedConfig != null) {
+                            // 触发连接 - 模拟点击连接按钮
+                            onConnect(new java.awt.event.ActionEvent(configList, java.awt.event.ActionEvent.ACTION_PERFORMED, "doubleClick"));
+                        }
+                    }
+                }
+            }
+        });
+
         JScrollPane scrollPane = new JScrollPane(configList);
         panel.add(scrollPane, BorderLayout.CENTER);
 
         // 操作按钮
         JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
+
+        JButton editBtn = new JButton("编辑选中配置");
+        editBtn.addActionListener(this::onEdit);
+        buttonPanel.add(editBtn);
 
         JButton deleteBtn = new JButton("删除选中配置");
         deleteBtn.addActionListener(this::onDelete);
@@ -574,18 +599,138 @@ public class ConfigSelectionDialog extends JDialog {
                 return;
             }
         } else {
-            // 新建配置
+            // 新建或编辑配置
             selectedConfig = buildConfigFromFields();
             if (!validateConfig(selectedConfig)) {
                 return;
             }
 
+            // 如果是编辑模式，先删除旧配置
+            if (isEditMode && editingConfigName != null) {
+                configStorage.deleteConfig(editingConfigName);
+            }
+
             // 保存配置
             configStorage.saveConfig(selectedConfig);
+
+            // 重置编辑模式
+            isEditMode = false;
+            editingConfigName = null;
+            nameField.setEditable(true);
+            nameField.setToolTipText(null);
+            tabbedPane.setTitleAt(1, "新建配置");
         }
 
-        confirmed = true;
-        dispose();
+        // 测试连接
+        ConfigStorage.ConnectionConfig finalConfig = selectedConfig;
+        setTitle("选择 Keycloak 连接配置 - 正在连接...");
+
+        SwingWorker<Void, Void> worker = new SwingWorker<>() {
+            private String resultMessage;
+            private boolean isSuccess;
+
+            @Override
+            protected Void doInBackground() {
+                try (KeycloakService testService = KeycloakService.fromConfig(finalConfig)) {
+                    // 尝试获取服务器信息来验证连接
+                    testService.getClients();
+                    resultMessage = "连接成功！\n\n" +
+                            "服务器: " + finalConfig.getServerUrl() + "\n" +
+                            "Realm: " + finalConfig.getRealm() + "\n" +
+                            "登录方式: " + finalConfig.getAuthType().getDisplayName();
+                    if (finalConfig.isUseProxy()) {
+                        resultMessage += "\n代理: " + finalConfig.getProxyProtocol().getDisplayName() +
+                                "://" + finalConfig.getProxyHost() + ":" + finalConfig.getProxyPort();
+                    }
+                    isSuccess = true;
+                } catch (Exception ex) {
+                    resultMessage = "连接失败！\n\n错误信息: " + ex.getMessage();
+                    isSuccess = false;
+                }
+                return null;
+            }
+
+            @Override
+            protected void done() {
+                setTitle("选择 Keycloak 连接配置");
+                if (isSuccess) {
+                    showInfo(ConfigSelectionDialog.this, "连接结果", resultMessage);
+                    // 刷新配置列表（编辑模式下配置已保存，需要刷新显示）
+                    loadSavedConfigs();
+                    confirmed = true;
+                    dispose();
+                } else {
+                    showError(ConfigSelectionDialog.this, "连接结果", resultMessage);
+                    // 连接失败时不关闭对话框，让用户可以修改配置
+                }
+            }
+        };
+
+        worker.execute();
+    }
+
+    private void onEdit(ActionEvent e) {
+        String selectedName = configList.getSelectedValue();
+        if (selectedName == null) {
+            showWarning(this, "提示", "请选择一个配置");
+            return;
+        }
+
+        // 加载选中的配置
+        ConfigStorage.ConnectionConfig config = configStorage.loadConfig(selectedName);
+        if (config == null) {
+            showError(this, "错误", "无法加载配置: " + selectedName);
+            return;
+        }
+
+        // 设置为编辑模式
+        isEditMode = true;
+        editingConfigName = selectedName;
+
+        // 将配置加载到表单
+        loadConfigToFields(config);
+
+        // 切换到新建配置标签页（现在用于编辑）
+        tabbedPane.setSelectedIndex(1);
+        tabbedPane.setTitleAt(1, "编辑配置: " + selectedName);
+
+        // 配置名称字段设为不可编辑（作为标识）
+        nameField.setEditable(false);
+        nameField.setToolTipText("配置名称不可修改，如需改名请删除后重新创建");
+    }
+
+    private void loadConfigToFields(ConfigStorage.ConnectionConfig config) {
+        // 基本配置
+        nameField.setText(config.getName());
+        serverUrlField.setText(config.getServerUrl());
+        realmField.setText(config.getRealm());
+
+        // 登录方式
+        authTypeComboBox.setSelectedItem(config.getAuthType());
+        updateAuthCard();
+
+        // 认证凭据
+        if (config.getAuthType() == AuthType.USERNAME_PASSWORD) {
+            usernameField.setText(config.getUsername());
+            passwordField.setText(config.getPassword());
+            clientIdField.setText("");
+            clientSecretField.setText("");
+        } else {
+            usernameField.setText("");
+            passwordField.setText("");
+            clientIdField.setText(config.getClientId());
+            clientSecretField.setText(config.getClientSecret());
+        }
+
+        // 代理配置
+        useProxyCheckBox.setSelected(config.isUseProxy());
+        proxyProtocolComboBox.setSelectedItem(config.getProxyProtocol());
+        proxyHostField.setText(config.getProxyHost());
+        proxyPortSpinner.setValue(config.getProxyPort());
+        onUseProxyChanged(null); // 更新代理字段的启用状态
+
+        // SSL 配置
+        skipSslCheckBox.setSelected(config.isSkipSslVerify());
     }
 
     private void onDelete(ActionEvent e) {

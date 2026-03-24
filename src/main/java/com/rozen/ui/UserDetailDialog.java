@@ -3,6 +3,9 @@ package com.rozen.ui;
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import java.awt.*;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
+import java.net.URI;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.List;
@@ -14,10 +17,14 @@ public class UserDetailDialog extends JDialog {
     private JRadioButton textModeRadio;
     private JPanel contentPanel;
     private UserInfo userInfo;
+    private String serverUrl;
+    private String realm;
 
-    public UserDetailDialog(JFrame parent, UserInfo userInfo) {
+    public UserDetailDialog(JFrame parent, UserInfo userInfo, String serverUrl, String realm) {
         super(parent, "用户详情 - " + userInfo.getUsername(), true);
         this.userInfo = userInfo;
+        this.serverUrl = serverUrl;
+        this.realm = realm;
 
         setSize(650, 550);
         setLocationRelativeTo(parent);
@@ -28,24 +35,60 @@ public class UserDetailDialog extends JDialog {
         JPanel panel = new JPanel(new BorderLayout(10, 10));
         panel.setBorder(new EmptyBorder(10, 10, 10, 10));
 
+        // 顶部面板：模式选择 + Keycloak URL
+        JPanel topPanel = new JPanel(new BorderLayout());
+
         // 模式选择面板
         JPanel modePanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
         modePanel.setBorder(BorderFactory.createTitledBorder("显示模式"));
-        
+
         ButtonGroup modeGroup = new ButtonGroup();
         tableModeRadio = new JRadioButton("表格模式", true);
         textModeRadio = new JRadioButton("文本模式(可复制)");
         modeGroup.add(tableModeRadio);
         modeGroup.add(textModeRadio);
-        
+
         modePanel.add(tableModeRadio);
         modePanel.add(textModeRadio);
-        
+
         // 添加切换监听
         tableModeRadio.addActionListener(e -> updateContent());
         textModeRadio.addActionListener(e -> updateContent());
-        
-        panel.add(modePanel, BorderLayout.NORTH);
+
+        topPanel.add(modePanel, BorderLayout.NORTH);
+
+        // Keycloak 控制台 URL 显示（可复制）
+        if (serverUrl != null && !serverUrl.isEmpty() && realm != null && !realm.isEmpty()) {
+            JPanel urlPanel = new JPanel(new BorderLayout(5, 0));
+            urlPanel.setBorder(BorderFactory.createEmptyBorder(5, 10, 5, 10));
+
+            JLabel urlLabel = new JLabel("控制台URL:");
+            urlPanel.add(urlLabel, BorderLayout.WEST);
+
+            // 使用 JTextField 显示 URL，设置为蓝色样式，可复制
+            String url = buildKeycloakConsoleUrl();
+            JTextField urlField = new JTextField(url);
+            urlField.setEditable(false);
+            urlField.setFont(new Font("Monospaced", Font.PLAIN, 12));
+            urlField.setForeground(Color.BLUE);
+            urlField.setCaretColor(Color.BLUE);
+            urlField.setBorder(BorderFactory.createEmptyBorder(2, 2, 2, 2));
+            urlField.setToolTipText("点击选择，Ctrl+C 复制，双击在浏览器中打开");
+            urlField.addMouseListener(new MouseAdapter() {
+                @Override
+                public void mouseClicked(MouseEvent e) {
+                    urlField.selectAll();
+                    if (e.getClickCount() == 2) {
+                        openKeycloakConsole();
+                    }
+                }
+            });
+            urlPanel.add(urlField, BorderLayout.CENTER);
+
+            topPanel.add(urlPanel, BorderLayout.SOUTH);
+        }
+
+        panel.add(topPanel, BorderLayout.NORTH);
 
         // 内容面板
         contentPanel = new JPanel(new BorderLayout());
@@ -225,5 +268,25 @@ public class UserDetailDialog extends JDialog {
             return "(无)";
         }
         return String.join(", ", actions);
+    }
+
+    private String buildKeycloakConsoleUrl() {
+        String consoleUrl = serverUrl;
+        if (consoleUrl.endsWith("/")) {
+            consoleUrl = consoleUrl.substring(0, consoleUrl.length() - 1);
+        }
+        // 使用 master realm 登录管理控制台，然后跳转到指定 realm 的用户详情页面
+        return consoleUrl + "/admin/master/console/#/" + realm + "/users/" + userInfo.getId() + "/settings";
+    }
+
+    private void openKeycloakConsole() {
+        try {
+            Desktop.getDesktop().browse(new URI(buildKeycloakConsoleUrl()));
+        } catch (Exception ex) {
+            JOptionPane.showMessageDialog(this,
+                "无法打开浏览器: " + ex.getMessage(),
+                "错误",
+                JOptionPane.ERROR_MESSAGE);
+        }
     }
 }
