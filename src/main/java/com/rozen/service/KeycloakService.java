@@ -428,11 +428,124 @@ public class KeycloakService implements AutoCloseable {
         RealmResource realmResource = keycloak.realm(realm);
         UsersResource usersResource = realmResource.users();
 
-        // 按属性搜索
+        // 按属性搜索（精确匹配）
         List<UserRepresentation> users = usersResource.searchByAttributes(attributeName + ":" + attributeValue);
         return users.stream()
                 .map(this::convertToUserInfo)
                 .collect(Collectors.toList());
+    }
+
+    public PageResult<UserInfo> searchUsersByAttributeFuzzy(String attributeKeyword, String valueKeyword, int page, int pageSize) {
+        RealmResource realmResource = keycloak.realm(realm);
+        UsersResource usersResource = realmResource.users();
+
+        // 获取所有用户，然后在内存中过滤（因为 Keycloak API 不支持属性值的模糊搜索）
+        List<UserRepresentation> allUsers = usersResource.list(0, Integer.MAX_VALUE);
+
+        // 过滤包含匹配属性的用户
+        List<UserInfo> filteredUsers = allUsers.stream()
+                .filter(user -> {
+                    Map<String, List<String>> attrs = user.getAttributes();
+                    if (attrs == null || attrs.isEmpty()) {
+                        return false;
+                    }
+                    // 检查是否有属性名包含关键词，且属性值包含值关键词
+                    for (Map.Entry<String, List<String>> entry : attrs.entrySet()) {
+                        String attrName = entry.getKey().toLowerCase();
+                        List<String> attrValues = entry.getValue();
+
+                        // 属性名模糊匹配
+                        boolean nameMatch = attrName.contains(attributeKeyword.toLowerCase());
+
+                        // 属性值模糊匹配（如果指定了值关键词）
+                        boolean valueMatch = true;
+                        if (valueKeyword != null && !valueKeyword.isEmpty()) {
+                            valueMatch = attrValues != null && attrValues.stream()
+                                    .anyMatch(v -> v.toLowerCase().contains(valueKeyword.toLowerCase()));
+                        }
+
+                        if (nameMatch && valueMatch) {
+                            return true;
+                        }
+                    }
+                    return false;
+                })
+                .map(this::convertToUserInfo)
+                .collect(Collectors.toList());
+
+        // 手动分页
+        int totalCount = filteredUsers.size();
+        int fromIndex = page * pageSize;
+        int toIndex = Math.min(fromIndex + pageSize, totalCount);
+
+        List<UserInfo> pagedUsers = fromIndex < totalCount
+                ? filteredUsers.subList(fromIndex, toIndex)
+                : java.util.Collections.emptyList();
+
+        return new PageResult<>(pagedUsers, totalCount, page, pageSize);
+    }
+
+    public PageResult<UserInfo> searchUsersByMultipleAttributes(List<String> attrNames, List<String> attrValues, int page, int pageSize) {
+        RealmResource realmResource = keycloak.realm(realm);
+        UsersResource usersResource = realmResource.users();
+
+        // 获取所有用户，然后在内存中过滤（AND 逻辑）
+        List<UserRepresentation> allUsers = usersResource.list(0, Integer.MAX_VALUE);
+
+        // 过滤满足所有属性条件的用户（AND 逻辑）
+        List<UserInfo> filteredUsers = allUsers.stream()
+                .filter(user -> {
+                    Map<String, List<String>> attrs = user.getAttributes();
+                    if (attrs == null || attrs.isEmpty()) {
+                        return false;
+                    }
+
+                    // 检查是否满足所有条件（AND 逻辑）
+                    for (int i = 0; i < attrNames.size(); i++) {
+                        String searchName = attrNames.get(i).toLowerCase();
+                        String searchValue = attrValues.get(i).toLowerCase();
+
+                        // 查找匹配的属性
+                        boolean conditionMet = false;
+                        for (Map.Entry<String, List<String>> entry : attrs.entrySet()) {
+                            String attrName = entry.getKey().toLowerCase();
+                            List<String> values = entry.getValue();
+
+                            // 属性名模糊匹配，属性值模糊匹配
+                            if (attrName.contains(searchName)) {
+                                if (searchValue.isEmpty()) {
+                                    // 如果只指定了属性名，匹配即可
+                                    conditionMet = true;
+                                    break;
+                                } else if (values != null && values.stream()
+                                        .anyMatch(v -> v.toLowerCase().contains(searchValue))) {
+                                    // 属性值也匹配
+                                    conditionMet = true;
+                                    break;
+                                }
+                            }
+                        }
+
+                        if (!conditionMet) {
+                            // 有一个条件不满足，直接返回 false（AND 逻辑）
+                            return false;
+                        }
+                    }
+                    return true;
+                })
+                .map(this::convertToUserInfo)
+                .collect(Collectors.toList());
+
+        // 手动分页
+        int totalCount = filteredUsers.size();
+        int fromIndex = page * pageSize;
+        int toIndex = Math.min(fromIndex + pageSize, totalCount);
+
+        List<UserInfo> pagedUsers = fromIndex < totalCount
+                ? filteredUsers.subList(fromIndex, toIndex)
+                : java.util.Collections.emptyList();
+
+        return new PageResult<>(pagedUsers, totalCount, page, pageSize);
     }
 
     public UserInfo getUserById(String userId) {

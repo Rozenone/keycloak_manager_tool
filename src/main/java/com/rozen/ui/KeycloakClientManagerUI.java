@@ -77,6 +77,12 @@ public class KeycloakClientManagerUI extends JFrame {
     private JPanel clientCredentialsPanel;
     private JPanel authCardPanel;
 
+    // 自定义属性搜索条件
+    private java.util.List<JTextField> attrNameFields = new java.util.ArrayList<>();
+    private java.util.List<JTextField> attrValueFields = new java.util.ArrayList<>();
+    private JPanel attributeConditionsPanel;
+    private JSplitPane userPanelSplitPane; // 用户面板的分隔条，用于动态调整高度
+
     public KeycloakClientManagerUI(ConfigStorage.ConnectionConfig config) {
         this.currentConfig = config;
         this.configStorage = new ConfigStorage();
@@ -595,7 +601,7 @@ public class KeycloakClientManagerUI extends JFrame {
 
         row++;
 
-        // 搜索关键词
+        // 搜索关键词（普通搜索）
         gbc.gridx = 0;
         gbc.gridy = row;
         gbc.weightx = 0;
@@ -621,12 +627,45 @@ public class KeycloakClientManagerUI extends JFrame {
             userSearchField.setText("");
             searchTypeCombo.setSelectedIndex(0);
             exactMatchCheckBox.setSelected(false);
+            clearAttributeConditions();
             currentPage = 0;
             loadUsers();
         });
         searchPanel.add(clearBtn, gbc);
 
-        panel.add(searchPanel, BorderLayout.NORTH);
+        // 自定义属性条件面板（默认隐藏）
+        row++;
+        gbc.gridx = 0;
+        gbc.gridy = row;
+        gbc.gridwidth = 5;
+        gbc.weightx = 1.0;
+        gbc.fill = GridBagConstraints.BOTH;
+        JPanel attributePanel = createAttributeSearchPanel();
+        searchPanel.add(attributePanel, gbc);
+
+        // 监听搜索类型变化，显示/隐藏属性条件面板
+        searchTypeCombo.addActionListener(e -> {
+            boolean isCustomAttr = "自定义属性".equals(searchTypeCombo.getSelectedItem());
+            attributePanel.setVisible(isCustomAttr);
+            userSearchField.setEnabled(!isCustomAttr);
+            if (isCustomAttr) {
+                userSearchField.setText("");
+            }
+            searchPanel.revalidate();
+            searchPanel.repaint();
+
+            // 自动调整 JSplitPane 分隔位置
+            SwingUtilities.invokeLater(() -> {
+                if (userPanelSplitPane != null) {
+                    Component topComponent = userPanelSplitPane.getTopComponent();
+                    if (topComponent != null) {
+                        int preferredHeight = topComponent.getPreferredSize().height;
+                        userPanelSplitPane.setDividerLocation(preferredHeight);
+                    }
+                }
+            });
+        });
+        attributePanel.setVisible(false);
 
         // 用户表格
         String[] columns = {"用户ID", "用户名", "表示名", "邮箱", "姓名", "启用状态", "邮箱验证"};
@@ -653,8 +692,25 @@ public class KeycloakClientManagerUI extends JFrame {
             }
         });
 
-        JScrollPane scrollPane = new JScrollPane(userTable);
-        panel.add(scrollPane, BorderLayout.CENTER);
+        JScrollPane tableScrollPane = new JScrollPane(userTable);
+
+        // 使用 JSplitPane 实现搜索面板和用户列表之间的可拖拽调整
+        // 将搜索面板放入一个可自适应高度的容器
+        JPanel searchContainer = new JPanel(new BorderLayout());
+        searchContainer.add(searchPanel, BorderLayout.NORTH);
+
+        userPanelSplitPane = new JSplitPane(JSplitPane.VERTICAL_SPLIT, searchContainer, tableScrollPane);
+        userPanelSplitPane.setDividerSize(5);
+        userPanelSplitPane.setResizeWeight(0.0); // 上方不扩展，下方优先扩展
+        userPanelSplitPane.setBorder(null);
+
+        panel.add(userPanelSplitPane, BorderLayout.CENTER);
+
+        // 在面板显示后设置分隔位置为搜索面板的首选高度
+        SwingUtilities.invokeLater(() -> {
+            int preferredHeight = searchPanel.getPreferredSize().height;
+            userPanelSplitPane.setDividerLocation(preferredHeight);
+        });
 
         // 分页控制面板
         JPanel paginationPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 5, 0));
@@ -1197,13 +1253,6 @@ public class KeycloakClientManagerUI extends JFrame {
             return;
         }
 
-        String search = userSearchField.getText().trim();
-        if (search.isEmpty()) {
-            currentPage = 0;
-            loadUsers();
-            return;
-        }
-
         String searchType = (String) searchTypeCombo.getSelectedItem();
         boolean exactMatch = exactMatchCheckBox.isSelected();
 
@@ -1211,18 +1260,40 @@ public class KeycloakClientManagerUI extends JFrame {
             PageResult<UserInfo> result;
 
             if ("自定义属性".equals(searchType)) {
-                if (search.contains("=")) {
-                    String[] parts = search.split("=", 2);
-                    String attrName = parts[0].trim();
-                    String attrValue = parts[1].trim();
-                    List<UserInfo> users = keycloakService.searchUsersByAttribute(attrName, attrValue);
-                    result = new PageResult<>(users, users.size(), 0, users.size());
-                } else {
-                    showWarning(this, "提示", "自定义属性搜索格式：属性名=属性值");
+                // 多属性条件搜索（AND 逻辑）
+                if (attrNameFields.isEmpty()) {
+                    showWarning(this, "提示", "请至少添加一个属性条件");
                     return;
                 }
+
+                // 收集所有属性条件
+                java.util.List<String> attrNames = new java.util.ArrayList<>();
+                java.util.List<String> attrValues = new java.util.ArrayList<>();
+
+                for (int i = 0; i < attrNameFields.size(); i++) {
+                    String name = attrNameFields.get(i).getText().trim();
+                    String value = attrValueFields.get(i).getText().trim();
+
+                    if (!name.isEmpty()) {
+                        attrNames.add(name);
+                        attrValues.add(value);
+                    }
+                }
+
+                if (attrNames.isEmpty()) {
+                    showWarning(this, "提示", "请至少输入一个属性名");
+                    return;
+                }
+
+                result = keycloakService.searchUsersByMultipleAttributes(attrNames, attrValues, currentPage, pageSize);
             } else {
-                String type = "全部".equals(searchType) ? "all" : 
+                String search = userSearchField.getText().trim();
+                if (search.isEmpty()) {
+                    currentPage = 0;
+                    loadUsers();
+                    return;
+                }
+                String type = "全部".equals(searchType) ? "all" :
                               "ID".equals(searchType) ? "id" :
                               "用户名".equals(searchType) ? "username" : "email";
                 result = keycloakService.searchUsers(search, type, exactMatch, currentPage, pageSize);
@@ -1349,5 +1420,159 @@ public class KeycloakClientManagerUI extends JFrame {
             UserDetailDialog dialog = new UserDetailDialog(this, userInfo, currentConfig.getServerUrl(), currentConfig.getRealm());
             dialog.setVisible(true);
         }
+    }
+
+    private JPanel createAttributeSearchPanel() {
+        JPanel panel = new JPanel(new BorderLayout(5, 5));
+        panel.setBorder(BorderFactory.createTitledBorder("属性条件 (AND 逻辑)"));
+
+        // 条件列表面板 - 不使用滚动条，让面板自然扩展
+        attributeConditionsPanel = new JPanel(new GridBagLayout());
+        attributeConditionsPanel.setBorder(null);
+
+        // 按钮面板
+        JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
+        JButton addBtn = new JButton("添加条件");
+        addBtn.addActionListener(e -> addAttributeConditionRow());
+        buttonPanel.add(addBtn);
+
+        JButton clearBtn = new JButton("清除条件");
+        clearBtn.addActionListener(e -> clearAttributeConditions());
+        buttonPanel.add(clearBtn);
+
+        // 将条件面板和按钮面板垂直排列，不使用JSplitPane，让高度自然扩展
+        JPanel contentPanel = new JPanel(new BorderLayout());
+        contentPanel.add(attributeConditionsPanel, BorderLayout.NORTH);
+        contentPanel.add(buttonPanel, BorderLayout.SOUTH);
+
+        panel.add(contentPanel, BorderLayout.CENTER);
+
+        // 默认添加一行
+        addAttributeConditionRow();
+
+        return panel;
+    }
+
+    private void addAttributeConditionRow() {
+        if (attrNameFields.size() >= 5) {
+            showWarning(this, "提示", "最多支持 5 个属性条件");
+            return;
+        }
+
+        GridBagConstraints gbc = new GridBagConstraints();
+        gbc.insets = new Insets(3, 3, 3, 3);
+        gbc.fill = GridBagConstraints.HORIZONTAL;
+
+        int row = attrNameFields.size();
+
+        // 属性名输入
+        gbc.gridx = 0;
+        gbc.weightx = 0;
+        attributeConditionsPanel.add(new JLabel("属性" + (row + 1) + ":"), gbc);
+
+        gbc.gridx = 1;
+        gbc.weightx = 0.4;
+        JTextField nameField = new JTextField(12);
+        attributeConditionsPanel.add(nameField, gbc);
+        attrNameFields.add(nameField);
+
+        // 属性值输入
+        gbc.gridx = 2;
+        gbc.weightx = 0;
+        attributeConditionsPanel.add(new JLabel("值:"), gbc);
+
+        gbc.gridx = 3;
+        gbc.weightx = 0.6;
+        JTextField valueField = new JTextField(15);
+        attributeConditionsPanel.add(valueField, gbc);
+        attrValueFields.add(valueField);
+
+        // 删除按钮
+        gbc.gridx = 4;
+        gbc.weightx = 0;
+        JButton deleteBtn = new JButton("删除");
+        final int index = row;
+        deleteBtn.addActionListener(e -> removeAttributeConditionRow(index));
+        attributeConditionsPanel.add(deleteBtn, gbc);
+
+        // 刷新父容器布局，让高度自然调整
+        attributeConditionsPanel.revalidate();
+        attributeConditionsPanel.repaint();
+
+        // 通知上层 JSplitPane 重新计算分隔位置
+        SwingUtilities.invokeLater(() -> {
+            if (userPanelSplitPane != null) {
+                Component topComponent = userPanelSplitPane.getTopComponent();
+                if (topComponent != null) {
+                    int preferredHeight = topComponent.getPreferredSize().height;
+                    userPanelSplitPane.setDividerLocation(preferredHeight);
+                }
+            }
+        });
+    }
+
+    private void removeAttributeConditionRow(int index) {
+        if (index < 0 || index >= attrNameFields.size()) return;
+
+        attrNameFields.remove(index);
+        attrValueFields.remove(index);
+
+        // 重新构建面板
+        attributeConditionsPanel.removeAll();
+
+        GridBagConstraints gbc = new GridBagConstraints();
+        gbc.insets = new Insets(3, 3, 3, 3);
+        gbc.fill = GridBagConstraints.HORIZONTAL;
+
+        for (int i = 0; i < attrNameFields.size(); i++) {
+            // 属性名输入
+            gbc.gridx = 0;
+            gbc.weightx = 0;
+            attributeConditionsPanel.add(new JLabel("属性" + (i + 1) + ":"), gbc);
+
+            gbc.gridx = 1;
+            gbc.weightx = 0.4;
+            attributeConditionsPanel.add(attrNameFields.get(i), gbc);
+
+            // 属性值输入
+            gbc.gridx = 2;
+            gbc.weightx = 0;
+            attributeConditionsPanel.add(new JLabel("值:"), gbc);
+
+            gbc.gridx = 3;
+            gbc.weightx = 0.6;
+            attributeConditionsPanel.add(attrValueFields.get(i), gbc);
+
+            // 删除按钮
+            gbc.gridx = 4;
+            gbc.weightx = 0;
+            JButton deleteBtn = new JButton("删除");
+            final int idx = i;
+            deleteBtn.addActionListener(e -> removeAttributeConditionRow(idx));
+            attributeConditionsPanel.add(deleteBtn, gbc);
+        }
+
+        // 刷新父容器布局，让高度自然调整
+        attributeConditionsPanel.revalidate();
+        attributeConditionsPanel.repaint();
+
+        // 通知上层 JSplitPane 重新计算分隔位置
+        SwingUtilities.invokeLater(() -> {
+            if (userPanelSplitPane != null) {
+                Component topComponent = userPanelSplitPane.getTopComponent();
+                if (topComponent != null) {
+                    int preferredHeight = topComponent.getPreferredSize().height;
+                    userPanelSplitPane.setDividerLocation(preferredHeight);
+                }
+            }
+        });
+    }
+
+    private void clearAttributeConditions() {
+        attrNameFields.clear();
+        attrValueFields.clear();
+        attributeConditionsPanel.removeAll();
+        addAttributeConditionRow();
+        // 高度会在 addAttributeConditionRow 中自动调整
     }
 }
