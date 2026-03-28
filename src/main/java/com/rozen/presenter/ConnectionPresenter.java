@@ -1,10 +1,13 @@
 package com.rozen.presenter;
 
+import com.rozen.constant.MessageConstants;
 import com.rozen.service.ConfigStorage;
 import com.rozen.service.KeycloakService;
 
 import java.util.List;
 import java.util.function.Consumer;
+
+import static com.rozen.service.I18nManager.t;
 
 /**
  * 连接管理的 Presenter 层
@@ -56,7 +59,7 @@ public class ConnectionPresenter {
             configStorage.saveConfig(config);
             return true;
         } catch (Exception ex) {
-            notifyError("保存配置失败: " + ex.getMessage());
+            notifyError(t(MessageConstants.Msg.SAVE_FAILED) + ": " + ex.getMessage());
             return false;
         }
     }
@@ -69,7 +72,7 @@ public class ConnectionPresenter {
             configStorage.deleteConfig(name);
             return true;
         } catch (Exception ex) {
-            notifyError("删除配置失败: " + ex.getMessage());
+            notifyError(t(MessageConstants.Msg.DELETE_FAILED) + ": " + ex.getMessage());
             return false;
         }
     }
@@ -81,9 +84,9 @@ public class ConnectionPresenter {
         new Thread(() -> {
             try (KeycloakService testService = KeycloakService.fromConfig(config)) {
                 testService.testConnection();
-                callback.accept(new TestResult(true, "连接测试成功", config));
+                callback.accept(new TestResult(true, t(MessageConstants.Msg.CONNECTION_TEST_SUCCESS), config));
             } catch (Exception ex) {
-                callback.accept(new TestResult(false, "连接测试失败: " + ex.getMessage(), config));
+                callback.accept(new TestResult(false, t(MessageConstants.Msg.CONNECTION_TEST_FAILED) + ": " + ex.getMessage(), config));
             }
         }).start();
     }
@@ -98,11 +101,11 @@ public class ConnectionPresenter {
             }
             keycloakService = KeycloakService.fromConfig(config);
             keycloakService.testConnection();
-            notifyStatus("已连接到: " + config.getServerUrl());
+            notifyStatus(t(MessageConstants.Msg.CONNECTED_TO_SERVER) + ": " + config.getServerUrl());
             notifyConnectionStateChanged(true);
             return true;
         } catch (Exception ex) {
-            notifyError("连接失败: " + ex.getMessage());
+            notifyError(t(MessageConstants.Msg.CONNECTION_FAILED) + ": " + ex.getMessage());
             keycloakService = null;
             notifyConnectionStateChanged(false);
             return false;

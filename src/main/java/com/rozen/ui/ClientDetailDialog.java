@@ -1,10 +1,13 @@
 package com.rozen.ui;
 
+import com.rozen.constant.MessageConstants;
 import com.rozen.model.ClientInfo;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import java.awt.*;
+
+import static com.rozen.service.I18nManager.t;
 
 public class ClientDetailDialog extends JDialog {
 
@@ -14,7 +17,7 @@ public class ClientDetailDialog extends JDialog {
     private ClientInfo clientInfo;
 
     public ClientDetailDialog(JFrame parent, ClientInfo clientInfo) {
-        super(parent, "客户端详情 - " + clientInfo.getClientId(), true);
+        super(parent, t(MessageConstants.Client.DETAIL) + " - " + clientInfo.getClientId(), true);
         this.clientInfo = clientInfo;
 
         setSize(600, 500);
@@ -28,14 +31,14 @@ public class ClientDetailDialog extends JDialog {
 
         // 模式选择面板
         JPanel modePanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
-        modePanel.setBorder(BorderFactory.createTitledBorder("显示模式"));
-        
+        modePanel.setBorder(BorderFactory.createTitledBorder(t(MessageConstants.Dialog.DISPLAY_MODE)));
+
         ButtonGroup modeGroup = new ButtonGroup();
-        tableModeRadio = new JRadioButton("表格模式", true);
-        textModeRadio = new JRadioButton("文本模式(可复制)");
+        tableModeRadio = new JRadioButton(t(MessageConstants.Dialog.TABLE_MODE), true);
+        textModeRadio = new JRadioButton(t(MessageConstants.Dialog.TEXT_MODE));
         modeGroup.add(tableModeRadio);
         modeGroup.add(textModeRadio);
-        
+
         modePanel.add(tableModeRadio);
         modePanel.add(textModeRadio);
         
@@ -54,7 +57,7 @@ public class ClientDetailDialog extends JDialog {
 
         // 关闭按钮
         JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.CENTER));
-        JButton closeBtn = new JButton("关闭");
+        JButton closeBtn = new JButton(t(MessageConstants.Button.CLOSE));
         closeBtn.addActionListener(e -> dispose());
         buttonPanel.add(closeBtn);
 
@@ -74,14 +77,14 @@ public class ClientDetailDialog extends JDialog {
             textArea.setBorder(new EmptyBorder(10, 10, 10, 10));
             
             StringBuilder sb = new StringBuilder();
-            sb.append("客户端ID:     ").append(getStringValue(clientInfo.getClientId())).append("\n\n");
-            sb.append("名称:         ").append(getStringValue(clientInfo.getName())).append("\n\n");
-            sb.append("描述:         ").append(getStringValue(clientInfo.getDescription())).append("\n\n");
-            sb.append("启用状态:     ").append(clientInfo.isEnabled() ? "启用" : "禁用").append("\n\n");
-            sb.append("协议:         ").append(getStringValue(clientInfo.getProtocol())).append("\n\n");
-            sb.append("根URL:        ").append(getStringValue(clientInfo.getRootUrl())).append("\n\n");
-            sb.append("重定向URI:\n").append(getStringValue(clientInfo.getRedirectUris())).append("\n\n");
-            sb.append("Web Origins:\n").append(getStringValue(clientInfo.getWebOrigins()));
+            sb.append(t(MessageConstants.Client.ID)).append(":     ").append(getStringValue(clientInfo.getClientId())).append("\n\n");
+            sb.append(t(MessageConstants.Client.NAME)).append(":         ").append(getStringValue(clientInfo.getName())).append("\n\n");
+            sb.append(t(MessageConstants.Client.DESCRIPTION)).append(":         ").append(getStringValue(clientInfo.getDescription())).append("\n\n");
+            sb.append(t(MessageConstants.Client.ENABLED)).append(":     ").append(clientInfo.isEnabled() ? t(MessageConstants.Status.ENABLED) : t(MessageConstants.Status.DISABLED)).append("\n\n");
+            sb.append(t(MessageConstants.Client.PROTOCOL)).append(":         ").append(getStringValue(clientInfo.getProtocol())).append("\n\n");
+            sb.append(t(MessageConstants.Client.ROOT_URL)).append(":        ").append(getStringValue(clientInfo.getRootUrl())).append("\n\n");
+            sb.append(t(MessageConstants.Client.REDIRECT_URIS)).append(":\n").append(getStringValue(clientInfo.getRedirectUris())).append("\n\n");
+            sb.append(t(MessageConstants.Client.WEB_ORIGINS)).append(":\n").append(getStringValue(clientInfo.getWebOrigins()));
             
             textArea.setText(sb.toString());
             textArea.setCaretPosition(0);
@@ -95,17 +98,17 @@ public class ClientDetailDialog extends JDialog {
             
             // 创建属性表格
             String[][] data = {
-                {"客户端ID", getStringValue(clientInfo.getClientId())},
-                {"名称", getStringValue(clientInfo.getName())},
-                {"描述", getStringValue(clientInfo.getDescription())},
-                {"启用状态", clientInfo.isEnabled() ? "启用" : "禁用"},
-                {"协议", getStringValue(clientInfo.getProtocol())},
-                {"根URL", getStringValue(clientInfo.getRootUrl())},
-                {"重定向URI", getStringValue(clientInfo.getRedirectUris())},
-                {"Web Origins", getStringValue(clientInfo.getWebOrigins())}
+                {t(MessageConstants.Client.ID), getStringValue(clientInfo.getClientId())},
+                {t(MessageConstants.Client.NAME), getStringValue(clientInfo.getName())},
+                {t(MessageConstants.Client.DESCRIPTION), getStringValue(clientInfo.getDescription())},
+                {t(MessageConstants.Client.ENABLED), clientInfo.isEnabled() ? t(MessageConstants.Status.ENABLED) : t(MessageConstants.Status.DISABLED)},
+                {t(MessageConstants.Client.PROTOCOL), getStringValue(clientInfo.getProtocol())},
+                {t(MessageConstants.Client.ROOT_URL), getStringValue(clientInfo.getRootUrl())},
+                {t(MessageConstants.Client.REDIRECT_URIS), getStringValue(clientInfo.getRedirectUris())},
+                {t(MessageConstants.Client.WEB_ORIGINS), getStringValue(clientInfo.getWebOrigins())}
             };
 
-            String[] columns = {"属性", "值"};
+            String[] columns = {t(MessageConstants.Dialog.PROPERTY), t(MessageConstants.Dialog.VALUE)};
             JTable table = new JTable(data, columns) {
                 @Override
                 public boolean isCellEditable(int row, int column) {
@@ -126,6 +129,6 @@ public class ClientDetailDialog extends JDialog {
     }
 
     private String getStringValue(String value) {
-        return value != null && !value.isEmpty() ? value : "(未设置)";
+        return value != null && !value.isEmpty() ? value : t(MessageConstants.Dialog.NOT_SET);
     }
 }

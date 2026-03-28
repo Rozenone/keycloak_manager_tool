@@ -1,5 +1,7 @@
 package com.rozen.service;
 
+import com.rozen.constant.MessageConstants;
+
 import java.io.*;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -183,11 +185,11 @@ public class ConfigStorage {
         String prefix = "config." + name + ".";
         ConnectionConfig config = new ConnectionConfig();
         config.setName(name);
-        config.setServerUrl(props.getProperty(prefix + "serverUrl", ""));
-        config.setRealm(props.getProperty(prefix + "realm", ""));
+        config.setServerUrl(props.getProperty(prefix + MessageConstants.ConfigKey.SERVER_URL, ""));
+        config.setRealm(props.getProperty(prefix + MessageConstants.ConfigKey.REALM, ""));
 
         // 登录方式
-        String authTypeStr = props.getProperty(prefix + "authType", "USERNAME_PASSWORD");
+        String authTypeStr = props.getProperty(prefix + MessageConstants.ConfigKey.AUTH_TYPE, "USERNAME_PASSWORD");
         try {
             config.setAuthType(AuthType.valueOf(authTypeStr));
         } catch (IllegalArgumentException e) {
@@ -195,25 +197,25 @@ public class ConfigStorage {
         }
 
         // 用户名密码方式
-        config.setUsername(props.getProperty(prefix + "username", ""));
-        config.setPassword(decrypt(props.getProperty(prefix + "password", "")));
+        config.setUsername(props.getProperty(prefix + MessageConstants.ConfigKey.USERNAME, ""));
+        config.setPassword(decrypt(props.getProperty(prefix + MessageConstants.ConfigKey.PASSWORD, "")));
 
         // 客户端凭据方式
-        config.setClientId(props.getProperty(prefix + "clientId", ""));
-        config.setClientSecret(decrypt(props.getProperty(prefix + "clientSecret", "")));
+        config.setClientId(props.getProperty(prefix + MessageConstants.ConfigKey.CLIENT_ID, ""));
+        config.setClientSecret(decrypt(props.getProperty(prefix + MessageConstants.ConfigKey.CLIENT_SECRET, "")));
 
         // 代理配置
-        config.setUseProxy(Boolean.parseBoolean(props.getProperty(prefix + "useProxy", "false")));
-        String proxyProtocolStr = props.getProperty(prefix + "proxyProtocol", "HTTP");
+        config.setUseProxy(Boolean.parseBoolean(props.getProperty(prefix + MessageConstants.ConfigKey.USE_PROXY, "false")));
+        String proxyProtocolStr = props.getProperty(prefix + MessageConstants.ConfigKey.PROXY_PROTOCOL, "HTTP");
         try {
             config.setProxyProtocol(ProxyProtocol.valueOf(proxyProtocolStr));
         } catch (IllegalArgumentException e) {
             config.setProxyProtocol(ProxyProtocol.HTTP);
         }
-        config.setProxyHost(props.getProperty(prefix + "proxyHost", ""));
-        config.setProxyPort(Integer.parseInt(props.getProperty(prefix + "proxyPort", "8080")));
+        config.setProxyHost(props.getProperty(prefix + MessageConstants.ConfigKey.PROXY_HOST, ""));
+        config.setProxyPort(Integer.parseInt(props.getProperty(prefix + MessageConstants.ConfigKey.PROXY_PORT, "8080")));
 
-        config.setSkipSslVerify(Boolean.parseBoolean(props.getProperty(prefix + "skipSslVerify", "false")));
+        config.setSkipSslVerify(Boolean.parseBoolean(props.getProperty(prefix + MessageConstants.ConfigKey.SKIP_SSL_VERIFY, "false")));
 
         return config;
     }
@@ -244,27 +246,27 @@ public class ConfigStorage {
         }
 
         String prefix = "config." + name + ".";
-        props.setProperty(prefix + "serverUrl", config.getServerUrl());
-        props.setProperty(prefix + "realm", config.getRealm());
+        props.setProperty(prefix + MessageConstants.ConfigKey.SERVER_URL, config.getServerUrl());
+        props.setProperty(prefix + MessageConstants.ConfigKey.REALM, config.getRealm());
 
         // 登录方式
-        props.setProperty(prefix + "authType", config.getAuthType() != null ? config.getAuthType().name() : AuthType.USERNAME_PASSWORD.name());
+        props.setProperty(prefix + MessageConstants.ConfigKey.AUTH_TYPE, config.getAuthType() != null ? config.getAuthType().name() : AuthType.USERNAME_PASSWORD.name());
 
         // 用户名密码方式
-        props.setProperty(prefix + "username", config.getUsername() != null ? config.getUsername() : "");
-        props.setProperty(prefix + "password", encrypt(config.getPassword()));
+        props.setProperty(prefix + MessageConstants.ConfigKey.USERNAME, config.getUsername() != null ? config.getUsername() : "");
+        props.setProperty(prefix + MessageConstants.ConfigKey.PASSWORD, encrypt(config.getPassword()));
 
         // 客户端凭据方式
-        props.setProperty(prefix + "clientId", config.getClientId() != null ? config.getClientId() : "");
-        props.setProperty(prefix + "clientSecret", encrypt(config.getClientSecret()));
+        props.setProperty(prefix + MessageConstants.ConfigKey.CLIENT_ID, config.getClientId() != null ? config.getClientId() : "");
+        props.setProperty(prefix + MessageConstants.ConfigKey.CLIENT_SECRET, encrypt(config.getClientSecret()));
 
         // 代理配置
-        props.setProperty(prefix + "useProxy", String.valueOf(config.isUseProxy()));
-        props.setProperty(prefix + "proxyProtocol", config.getProxyProtocol() != null ? config.getProxyProtocol().name() : ProxyProtocol.HTTP.name());
-        props.setProperty(prefix + "proxyHost", config.getProxyHost() != null ? config.getProxyHost() : "");
-        props.setProperty(prefix + "proxyPort", String.valueOf(config.getProxyPort()));
+        props.setProperty(prefix + MessageConstants.ConfigKey.USE_PROXY, String.valueOf(config.isUseProxy()));
+        props.setProperty(prefix + MessageConstants.ConfigKey.PROXY_PROTOCOL, config.getProxyProtocol() != null ? config.getProxyProtocol().name() : ProxyProtocol.HTTP.name());
+        props.setProperty(prefix + MessageConstants.ConfigKey.PROXY_HOST, config.getProxyHost() != null ? config.getProxyHost() : "");
+        props.setProperty(prefix + MessageConstants.ConfigKey.PROXY_PORT, String.valueOf(config.getProxyPort()));
 
-        props.setProperty(prefix + "skipSslVerify", String.valueOf(config.isSkipSslVerify()));
+        props.setProperty(prefix + MessageConstants.ConfigKey.SKIP_SSL_VERIFY, String.valueOf(config.isSkipSslVerify()));
 
         try (FileOutputStream fos = new FileOutputStream(configFile)) {
             props.store(fos, "Keycloak Manager Connection Configurations");
@@ -290,18 +292,18 @@ public class ConfigStorage {
             }
 
             String prefix = "config." + name + ".";
-            props.remove(prefix + "serverUrl");
-            props.remove(prefix + "realm");
-            props.remove(prefix + "authType");
-            props.remove(prefix + "username");
-            props.remove(prefix + "password");
-            props.remove(prefix + "clientId");
-            props.remove(prefix + "clientSecret");
-            props.remove(prefix + "useProxy");
-            props.remove(prefix + "proxyProtocol");
-            props.remove(prefix + "proxyHost");
-            props.remove(prefix + "proxyPort");
-            props.remove(prefix + "skipSslVerify");
+            props.remove(prefix + MessageConstants.ConfigKey.SERVER_URL);
+            props.remove(prefix + MessageConstants.ConfigKey.REALM);
+            props.remove(prefix + MessageConstants.ConfigKey.AUTH_TYPE);
+            props.remove(prefix + MessageConstants.ConfigKey.USERNAME);
+            props.remove(prefix + MessageConstants.ConfigKey.PASSWORD);
+            props.remove(prefix + MessageConstants.ConfigKey.CLIENT_ID);
+            props.remove(prefix + MessageConstants.ConfigKey.CLIENT_SECRET);
+            props.remove(prefix + MessageConstants.ConfigKey.USE_PROXY);
+            props.remove(prefix + MessageConstants.ConfigKey.PROXY_PROTOCOL);
+            props.remove(prefix + MessageConstants.ConfigKey.PROXY_HOST);
+            props.remove(prefix + MessageConstants.ConfigKey.PROXY_PORT);
+            props.remove(prefix + MessageConstants.ConfigKey.SKIP_SSL_VERIFY);
 
             try (FileOutputStream fos = new FileOutputStream(configFile)) {
                 props.store(fos, "Keycloak Manager Connection Configurations");

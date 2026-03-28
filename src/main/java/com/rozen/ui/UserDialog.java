@@ -1,5 +1,6 @@
 package com.rozen.ui;
 
+import com.rozen.constant.MessageConstants;
 import com.rozen.model.UserInfo;
 
 import javax.swing.*;
@@ -11,12 +12,12 @@ import java.util.*;
 import java.util.List;
 
 import static com.rozen.ui.DialogUtil.*;
+import static com.rozen.service.I18nManager.t;
 
 public class UserDialog extends JDialog {
 
     private boolean confirmed = false;
-    private UserInfo userInfo;
-    private boolean isEditMode;
+    private final UserInfo userInfo;
 
     private JTextField usernameField;
     private JTextField emailField;
@@ -28,9 +29,9 @@ public class UserDialog extends JDialog {
     private DefaultTableModel attributesTableModel;
 
     public UserDialog(JFrame parent, UserInfo existingUser) {
-        super(parent, existingUser == null ? "新增用户" : "编辑用户", true);
+        super(parent, existingUser == null ? t(MessageConstants.User.ADD) : t(MessageConstants.User.EDIT), true);
         this.userInfo = existingUser != null ? existingUser : new UserInfo();
-        this.isEditMode = existingUser != null;
+        boolean isEditMode = existingUser != null;
 
         setSize(600, 550);
         setLocationRelativeTo(parent);
@@ -47,7 +48,7 @@ public class UserDialog extends JDialog {
 
         // 表单面板
         JPanel formPanel = new JPanel(new GridBagLayout());
-        formPanel.setBorder(BorderFactory.createTitledBorder("基本信息"));
+        formPanel.setBorder(BorderFactory.createTitledBorder(t(MessageConstants.User.BASIC_INFO)));
         GridBagConstraints gbc = new GridBagConstraints();
         gbc.insets = new Insets(5, 5, 5, 5);
         gbc.fill = GridBagConstraints.HORIZONTAL;
@@ -56,22 +57,22 @@ public class UserDialog extends JDialog {
         int row = 0;
 
         // 用户名
-        addFormRow(formPanel, gbc, row++, "用户名 *:", usernameField = new JTextField(20));
+        addFormRow(formPanel, gbc, row++, t(MessageConstants.User.USERNAME) + " *:", usernameField = new JTextField(20));
 
         // 邮箱
-        addFormRow(formPanel, gbc, row++, "邮箱:", emailField = new JTextField(20));
+        addFormRow(formPanel, gbc, row++, t(MessageConstants.User.EMAIL) + ":", emailField = new JTextField(20));
 
         // 姓
-        addFormRow(formPanel, gbc, row++, "姓:", firstNameField = new JTextField(20));
+        addFormRow(formPanel, gbc, row++, t(MessageConstants.User.FIRST_NAME) + ":", firstNameField = new JTextField(20));
 
         // 名
-        addFormRow(formPanel, gbc, row++, "名:", lastNameField = new JTextField(20));
+        addFormRow(formPanel, gbc, row++, t(MessageConstants.User.LAST_NAME) + ":", lastNameField = new JTextField(20));
 
         // 启用状态
         gbc.gridx = 0;
         gbc.gridy = row;
         gbc.weightx = 0;
-        formPanel.add(new JLabel("启用:"), gbc);
+        formPanel.add(new JLabel(t(MessageConstants.User.ENABLED) + ":"), gbc);
 
         gbc.gridx = 1;
         gbc.weightx = 1.0;
@@ -84,7 +85,7 @@ public class UserDialog extends JDialog {
         gbc.gridx = 0;
         gbc.gridy = row;
         gbc.weightx = 0;
-        formPanel.add(new JLabel("邮箱已验证:"), gbc);
+        formPanel.add(new JLabel(t(MessageConstants.User.EMAIL_VERIFIED) + ":"), gbc);
 
         gbc.gridx = 1;
         gbc.weightx = 1.0;
@@ -100,11 +101,11 @@ public class UserDialog extends JDialog {
         // 按钮面板
         JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
 
-        JButton okBtn = new JButton("确定");
+        JButton okBtn = new JButton(t(MessageConstants.Button.OK));
         okBtn.addActionListener(this::onOk);
         buttonPanel.add(okBtn);
 
-        JButton cancelBtn = new JButton("取消");
+        JButton cancelBtn = new JButton(t(MessageConstants.Button.CANCEL));
         cancelBtn.addActionListener(e -> dispose());
         buttonPanel.add(cancelBtn);
 
@@ -115,10 +116,10 @@ public class UserDialog extends JDialog {
 
     private JPanel createAttributesPanel() {
         JPanel panel = new JPanel(new BorderLayout(5, 5));
-        panel.setBorder(BorderFactory.createTitledBorder("自定义属性"));
+        panel.setBorder(BorderFactory.createTitledBorder(t(MessageConstants.User.ATTRIBUTES)));
 
         // 属性表格
-        String[] columns = {"属性名", "属性值"};
+        String[] columns = {t(MessageConstants.User.ATTR_NAME), t(MessageConstants.User.ATTR_VALUE)};
         attributesTableModel = new DefaultTableModel(columns, 0) {
             @Override
             public boolean isCellEditable(int row, int column) {
@@ -137,11 +138,11 @@ public class UserDialog extends JDialog {
         // 操作按钮
         JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
 
-        JButton addBtn = new JButton("添加属性");
+        JButton addBtn = new JButton(t(MessageConstants.Button.ADD_ATTR));
         addBtn.addActionListener(e -> attributesTableModel.addRow(new Object[]{"", ""}));
         buttonPanel.add(addBtn);
 
-        JButton deleteBtn = new JButton("删除选中");
+        JButton deleteBtn = new JButton(t(MessageConstants.Button.DELETE_SELECTED));
         deleteBtn.addActionListener(e -> {
             int selectedRow = attributesTable.getSelectedRow();
             if (selectedRow >= 0) {
@@ -193,7 +194,7 @@ public class UserDialog extends JDialog {
         
         String username = usernameField.getText().trim();
         if (username.isEmpty()) {
-            showError(this, "错误", "用户名不能为空");
+            showError(this, t(MessageConstants.Msg.ERROR), t(MessageConstants.Validation.USERNAME_REQUIRED));
             return;
         }
 

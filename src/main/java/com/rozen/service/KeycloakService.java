@@ -1,5 +1,6 @@
 package com.rozen.service;
 
+import com.rozen.constant.MessageConstants;
 import com.rozen.model.ClientInfo;
 import com.rozen.model.UserInfo;
 
@@ -123,7 +124,7 @@ public class KeycloakService implements AutoCloseable {
         // 配置代理
         if (useProxy && proxyHost != null && !proxyHost.trim().isEmpty()) {
             // 设置代理协议（HTTP 或 HTTPS）
-            String proxyScheme = "HTTPS".equalsIgnoreCase(proxyProtocol) ? "https" : "http";
+            String proxyScheme = ConfigStorage.ProxyProtocol.HTTPS.name().equalsIgnoreCase(proxyProtocol) ? "https" : "http";
             clientBuilder.property("org.jboss.resteasy.jaxrs.client.proxy.host", proxyHost)
                     .property("org.jboss.resteasy.jaxrs.client.proxy.port", proxyPort)
                     .property("org.jboss.resteasy.jaxrs.client.proxy.scheme", proxyScheme);
@@ -322,8 +323,23 @@ public class KeycloakService implements AutoCloseable {
         RealmResource realmResource = keycloak.realm(realm);
         UsersResource usersResource = realmResource.users();
 
-        // 获取总数
-        int totalCount = usersResource.count();
+        // 获取总数 - 使用 count() 方法，如果返回 0 或失败则通过 list 获取
+        int totalCount = 0;
+        try {
+            totalCount = usersResource.count();
+        } catch (Exception e) {
+            // count() 方法抛出异常，忽略
+        }
+
+        // 如果 count() 返回 0，通过获取所有用户来计算实际总数
+        if (totalCount == 0) {
+            try {
+                List<UserRepresentation> allUsers = usersResource.list(0, Integer.MAX_VALUE);
+                totalCount = allUsers.size();
+            } catch (Exception e) {
+                // 如果获取所有用户也失败，保持 totalCount 为 0
+            }
+        }
 
         // 分页查询
         List<UserRepresentation> users = usersResource.list(page * pageSize, pageSize);
@@ -343,7 +359,7 @@ public class KeycloakService implements AutoCloseable {
 
         if (exactMatch) {
             // 精确匹配搜索
-            if ("id".equalsIgnoreCase(searchType)) {
+            if (MessageConstants.SearchType.ID.equalsIgnoreCase(searchType)) {
                 // 按 ID 精确查找
                 try {
                     UserRepresentation user = usersResource.get(search).toRepresentation();
@@ -353,11 +369,11 @@ public class KeycloakService implements AutoCloseable {
                     users = Collections.emptyList();
                     totalCount = 0;
                 }
-            } else if ("username".equalsIgnoreCase(searchType)) {
+            } else if (MessageConstants.SearchType.USERNAME.equalsIgnoreCase(searchType)) {
                 // 按用户名精确查找
                 users = usersResource.searchByUsername(search, true);
                 totalCount = users.size();
-            } else if ("email".equalsIgnoreCase(searchType)) {
+            } else if (MessageConstants.SearchType.EMAIL.equalsIgnoreCase(searchType)) {
                 // 按邮箱精确查找
                 users = usersResource.searchByEmail(search, true);
                 totalCount = users.size();
@@ -368,7 +384,7 @@ public class KeycloakService implements AutoCloseable {
             }
         } else {
             // 模糊匹配搜索
-            if ("id".equalsIgnoreCase(searchType)) {
+            if (MessageConstants.SearchType.ID.equalsIgnoreCase(searchType)) {
                 // 按 ID 模糊查找（实际上 ID 是精确匹配的）
                 try {
                     UserRepresentation user = usersResource.get(search).toRepresentation();
@@ -378,10 +394,10 @@ public class KeycloakService implements AutoCloseable {
                     users = Collections.emptyList();
                     totalCount = 0;
                 }
-            } else if ("username".equalsIgnoreCase(searchType)) {
+            } else if (MessageConstants.SearchType.USERNAME.equalsIgnoreCase(searchType)) {
                 users = usersResource.searchByUsername(search, false);
                 totalCount = users.size();
-            } else if ("email".equalsIgnoreCase(searchType)) {
+            } else if (MessageConstants.SearchType.EMAIL.equalsIgnoreCase(searchType)) {
                 users = usersResource.searchByEmail(search, false);
                 totalCount = users.size();
             } else {

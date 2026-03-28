@@ -1,8 +1,12 @@
 package com.rozen.ui;
 
+import com.rozen.constant.MessageConstants;
+
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import java.awt.*;
+
+import static com.rozen.service.I18nManager.t;
 
 public class DialogUtil {
 
@@ -66,7 +70,7 @@ public class DialogUtil {
         panel.add(scrollPane, BorderLayout.CENTER);
 
         // 添加提示标签
-        JLabel hintLabel = new JLabel("提示：文本已选中，可以直接按 Ctrl+C 复制");
+        JLabel hintLabel = new JLabel(t(MessageConstants.Dialog.COPY_HINT));
         hintLabel.setFont(new Font(hintLabel.getFont().getName(), Font.ITALIC, 11));
         hintLabel.setForeground(Color.GRAY);
         panel.add(hintLabel, BorderLayout.SOUTH);
@@ -80,8 +84,8 @@ public class DialogUtil {
      */
     public static void showExceptionError(Component parent, String title, Exception exception) {
         StringBuilder sb = new StringBuilder();
-        sb.append("错误信息: ").append(exception.getMessage()).append("\n\n");
-        sb.append("堆栈跟踪:\n");
+        sb.append(t(MessageConstants.Msg.ERROR_INFO)).append(": ").append(exception.getMessage()).append("\n\n");
+        sb.append(t(MessageConstants.Msg.STACK_TRACE)).append(":\n");
         for (StackTraceElement element : exception.getStackTrace()) {
             sb.append("    at ").append(element.toString()).append("\n");
         }

@@ -1,5 +1,6 @@
 package com.rozen.ui;
 
+import com.rozen.constant.MessageConstants;
 import com.rozen.model.ClientInfo;
 
 import javax.swing.*;
@@ -8,6 +9,7 @@ import java.awt.*;
 import java.awt.event.ActionEvent;
 
 import static com.rozen.ui.DialogUtil.*;
+import static com.rozen.service.I18nManager.t;
 
 public class ClientDialog extends JDialog {
 
@@ -23,7 +25,7 @@ public class ClientDialog extends JDialog {
     private JTextArea webOriginsArea;
 
     public ClientDialog(JFrame parent, ClientInfo existingClient) {
-        super(parent, existingClient == null ? "新增客户端" : "编辑客户端", true);
+        super(parent, existingClient == null ? t(MessageConstants.Client.ADD) : t(MessageConstants.Client.EDIT), true);
         this.clientInfo = existingClient != null ? existingClient : new ClientInfo();
 
         setSize(500, 500);
@@ -49,16 +51,16 @@ public class ClientDialog extends JDialog {
         int row = 0;
 
         // 客户端ID
-        addFormRow(formPanel, gbc, row++, "客户端ID *:", clientIdField = new JTextField(20));
+        addFormRow(formPanel, gbc, row++, t(MessageConstants.Client.ID) + " *:", clientIdField = new JTextField(20));
 
         // 名称
-        addFormRow(formPanel, gbc, row++, "显示名称:", nameField = new JTextField(20));
+        addFormRow(formPanel, gbc, row++, t(MessageConstants.Client.NAME) + ":", nameField = new JTextField(20));
 
         // 启用状态
         gbc.gridx = 0;
         gbc.gridy = row;
         gbc.weightx = 0;
-        formPanel.add(new JLabel("启用:"), gbc);
+        formPanel.add(new JLabel(t(MessageConstants.Client.ENABLED) + ":"), gbc);
 
         gbc.gridx = 1;
         gbc.weightx = 1.0;
@@ -68,14 +70,14 @@ public class ClientDialog extends JDialog {
         row++;
 
         // 根URL
-        addFormRow(formPanel, gbc, row++, "根URL:", rootUrlField = new JTextField(20));
+        addFormRow(formPanel, gbc, row++, t(MessageConstants.Client.ROOT_URL) + ":", rootUrlField = new JTextField(20));
 
         // 描述
         gbc.gridx = 0;
         gbc.gridy = row;
         gbc.weightx = 0;
         gbc.anchor = GridBagConstraints.NORTHWEST;
-        formPanel.add(new JLabel("描述:"), gbc);
+        formPanel.add(new JLabel(t(MessageConstants.Client.DESCRIPTION) + ":"), gbc);
 
         gbc.gridx = 1;
         gbc.weightx = 1.0;
@@ -90,7 +92,7 @@ public class ClientDialog extends JDialog {
         gbc.gridy = row;
         gbc.weightx = 0;
         gbc.weighty = 1.0;
-        formPanel.add(new JLabel("重定向URI (每行一个):"), gbc);
+        formPanel.add(new JLabel(t(MessageConstants.Client.REDIRECT_URIS) + ":"), gbc);
 
         gbc.gridx = 1;
         gbc.weightx = 1.0;
@@ -104,7 +106,7 @@ public class ClientDialog extends JDialog {
         gbc.gridy = row;
         gbc.weightx = 0;
         gbc.weighty = 1.0;
-        formPanel.add(new JLabel("Web Origins (每行一个):"), gbc);
+        formPanel.add(new JLabel(t(MessageConstants.Client.WEB_ORIGINS) + ":"), gbc);
 
         gbc.gridx = 1;
         gbc.weightx = 1.0;
@@ -117,11 +119,11 @@ public class ClientDialog extends JDialog {
         // 按钮面板
         JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
 
-        JButton okBtn = new JButton("确定");
+        JButton okBtn = new JButton(t(MessageConstants.Button.OK));
         okBtn.addActionListener(this::onOk);
         buttonPanel.add(okBtn);
 
-        JButton cancelBtn = new JButton("取消");
+        JButton cancelBtn = new JButton(t(MessageConstants.Button.CANCEL));
         cancelBtn.addActionListener(e -> dispose());
         buttonPanel.add(cancelBtn);
 
@@ -158,7 +160,7 @@ public class ClientDialog extends JDialog {
     private void onOk(ActionEvent e) {
         String clientId = clientIdField.getText().trim();
         if (clientId.isEmpty()) {
-            showError(this, "错误", "客户端ID不能为空");
+            showError(this, t(MessageConstants.Msg.ERROR), t(MessageConstants.Validation.CLIENT_ID_REQUIRED));
             return;
         }
 

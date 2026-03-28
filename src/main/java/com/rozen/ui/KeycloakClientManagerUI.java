@@ -1,16 +1,18 @@
 package com.rozen.ui;
 
+import com.rozen.constant.MessageConstants;
 import com.rozen.model.ClientInfo;
 import com.rozen.model.UserInfo;
 import com.rozen.service.ConfigStorage;
 import com.rozen.service.ConfigStorage.AuthType;
+import com.rozen.service.I18nManager;
 import com.rozen.service.KeycloakService;
 import com.rozen.service.KeycloakService.PageResult;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import javax.swing.table.DefaultTableModel;
-import java.awt.*;          
+import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ItemEvent;
 import java.awt.event.MouseAdapter;
@@ -19,6 +21,7 @@ import java.net.URI;
 import java.util.List;
 
 import static com.rozen.ui.DialogUtil.*;
+import static com.rozen.service.I18nManager.t;
 
 public class KeycloakClientManagerUI extends JFrame {
 
@@ -89,7 +92,7 @@ public class KeycloakClientManagerUI extends JFrame {
         this.currentConfig = config;
         this.configStorage = new ConfigStorage();
 
-        setTitle("Keycloak 管理工具 - " + config.getName());
+        setTitle(t(MessageConstants.App.TITLE) + " - " + config.getName());
         setSize(1200, 800);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setLocationRelativeTo(null);
@@ -106,59 +109,120 @@ public class KeycloakClientManagerUI extends JFrame {
         JMenuBar menuBar = new JMenuBar();
 
         // 文件菜单
-        JMenu fileMenu = new JMenu("文件");
-        JMenuItem exitItem = new JMenuItem("退出");
+        JMenu fileMenu = new JMenu(t(MessageConstants.Menu.FILE));
+        JMenuItem exitItem = new JMenuItem(t(MessageConstants.Menu.FILE_EXIT));
         exitItem.addActionListener(e -> System.exit(0));
         fileMenu.add(exitItem);
 
-        // 帮助菜单
-        JMenu helpMenu = new JMenu("帮助");
+        // 语言菜单
+        JMenu languageMenu = new JMenu(t(MessageConstants.Menu.LANGUAGE));
+        for (I18nManager.Language lang : I18nManager.Language.values()) {
+            JMenuItem langItem = new JMenuItem(lang.getDisplayName());
+            langItem.addActionListener(e -> switchLanguage(lang));
+            languageMenu.add(langItem);
+        }
 
-        JMenuItem githubItem = new JMenuItem("GitHub 仓库");
+        // 帮助菜单
+        JMenu helpMenu = new JMenu(t(MessageConstants.Menu.HELP));
+
+        JMenuItem githubItem = new JMenuItem(t(MessageConstants.Menu.HELP_GITHUB));
         githubItem.addActionListener(e -> openGitHub());
         helpMenu.add(githubItem);
 
         helpMenu.addSeparator();
 
-        JMenuItem aboutItem = new JMenuItem("关于");
+        JMenuItem aboutItem = new JMenuItem(t(MessageConstants.Menu.HELP_ABOUT));
         aboutItem.addActionListener(e -> showAbout());
         helpMenu.add(aboutItem);
 
         menuBar.add(fileMenu);
+        menuBar.add(languageMenu);
         menuBar.add(helpMenu);
 
         setJMenuBar(menuBar);
+    }
+
+    /**
+     * 切换语言并自动重启程序
+     */
+    private void switchLanguage(I18nManager.Language language) {
+        // 如果选择的语言与当前语言相同，不执行任何操作
+        if (I18nManager.getInstance().getCurrentLanguage() == language) {
+            return;
+        }
+
+        int result = JOptionPane.showConfirmDialog(this,
+            t(MessageConstants.Msg.RESTART_CONFIRM) + " " + language.getDisplayName() + "?",
+            t(MessageConstants.Menu.LANGUAGE),
+            JOptionPane.YES_NO_OPTION,
+            JOptionPane.QUESTION_MESSAGE);
+
+        if (result == JOptionPane.YES_OPTION) {
+            restartApplication(language);
+        }
+    }
+
+    /**
+     * 重启应用程序并应用新的语言设置
+     */
+    private void restartApplication(I18nManager.Language language) {
+        try {
+            // 获取当前运行的 Java 命令
+            String javaBin = System.getProperty("java.home") + "/bin/java";
+            String jarPath = System.getProperty("java.class.path");
+
+            // 构建重启命令，添加语言参数
+            ProcessBuilder builder = new ProcessBuilder(
+                javaBin,
+                "-jar",
+                jarPath,
+                "--lang=" + language.getCode()
+            );
+
+            // 继承当前进程的环境变量和工作目录
+            builder.inheritIO();
+            builder.directory(new java.io.File(System.getProperty("user.dir")));
+
+            // 启动新进程
+            builder.start();
+
+            // 关闭当前进程
+            System.exit(0);
+
+        } catch (Exception e) {
+            showError(this, t(MessageConstants.Msg.ERROR), t(MessageConstants.Msg.RESTART_FAILED) + ": " + e.getMessage());
+        }
     }
 
     private void openGitHub() {
         try {
             Desktop.getDesktop().browse(new URI(GITHUB_URL));
         } catch (Exception ex) {
-            showError(this, "错误", "无法打开浏览器: " + ex.getMessage());
+            showError(this, t(MessageConstants.Msg.ERROR), t(MessageConstants.Msg.BROWSER_OPEN_FAILED) + ": " + ex.getMessage());
         }
     }
 
     private void showAbout() {
-        String message = "Keycloak 管理工具\n" +
-                "版本: " + VERSION + "\n" +
+        String message = t(MessageConstants.About.DESCRIPTION) + "\n" +
+                t(MessageConstants.App.VERSION) + ": " + VERSION + "\n" +
                 "\n" +
                 "GitHub: " + GITHUB_URL + "\n" +
                 "\n" +
-                "功能:\n" +
-                "- Keycloak 客户端管理\n" +
-                "- 用户管理和搜索\n" +
-                "- 连接配置本地存储\n" +
-                "- SSL 证书验证跳过\n" +
-                "- 作者邮箱:rozenone@foxmail.com\n" +
+                t(MessageConstants.About.FEATURES) + "\n" +
+                "- " + t(MessageConstants.About.FEATURE1) + "\n" +
+                "- " + t(MessageConstants.About.FEATURE2) + "\n" +
+                "- " + t(MessageConstants.About.FEATURE3) + "\n" +
+                "- " + t(MessageConstants.About.FEATURE4) + "\n" +
+                "- " + t(MessageConstants.About.AUTHOR) + ":rozenone@foxmail.com\n" +
                 "\n" +
-                "© 2026 Rozenone";
+                t(MessageConstants.About.COPYRIGHT);
 
         JTextArea textArea = new JTextArea(message);
         textArea.setEditable(false);
         textArea.setBackground(UIManager.getColor("Panel.background"));
         textArea.setFont(new Font(Font.MONOSPACED, Font.PLAIN, 12));
 
-        JOptionPane.showMessageDialog(this, textArea, "关于", JOptionPane.INFORMATION_MESSAGE);
+        JOptionPane.showMessageDialog(this, textArea, t(MessageConstants.About.TITLE), JOptionPane.INFORMATION_MESSAGE);
     }
 
     private void initComponents() {
@@ -170,18 +234,18 @@ public class KeycloakClientManagerUI extends JFrame {
         JTabbedPane mainTabbedPane = new JTabbedPane();
 
         // 客户端管理 Tab
-        mainTabbedPane.addTab("客户端管理", createClientPanel());
+        mainTabbedPane.addTab(t(MessageConstants.Tab.CLIENT), createClientPanel());
 
         // 用户管理 Tab
-        mainTabbedPane.addTab("用户管理", createUserPanel());
+        mainTabbedPane.addTab(t(MessageConstants.Tab.USER), createUserPanel());
 
         // 连接配置 Tab
-        mainTabbedPane.addTab("连接配置", createConnectionConfigPanel());
+        mainTabbedPane.addTab(t(MessageConstants.Tab.CONFIG), createConnectionConfigPanel());
 
         mainPanel.add(mainTabbedPane, BorderLayout.CENTER);
 
         // 状态栏
-        statusLabel = new JLabel("就绪");
+        statusLabel = new JLabel(t(MessageConstants.Status.READY));
         statusLabel.setBorder(new EmptyBorder(5, 5, 5, 5));
         mainPanel.add(statusLabel, BorderLayout.SOUTH);
 
@@ -207,7 +271,7 @@ public class KeycloakClientManagerUI extends JFrame {
 
         // ========== 基本配置区域 ==========
         JPanel basicPanel = new JPanel(new GridBagLayout());
-        basicPanel.setBorder(BorderFactory.createTitledBorder("基本配置"));
+        basicPanel.setBorder(BorderFactory.createTitledBorder(t(MessageConstants.DialogConfig.BASIC)));
         GridBagConstraints gbcBasic = new GridBagConstraints();
         gbcBasic.insets = new Insets(5, 5, 5, 5);
         gbcBasic.fill = GridBagConstraints.HORIZONTAL;
@@ -217,7 +281,7 @@ public class KeycloakClientManagerUI extends JFrame {
         gbcBasic.gridx = 0;
         gbcBasic.gridy = 0;
         gbcBasic.weightx = 0;
-        basicPanel.add(new JLabel("服务器地址 *:"), gbcBasic);
+        basicPanel.add(new JLabel(t(MessageConstants.DialogConfig.SERVER_URL) + " *:"), gbcBasic);
 
         gbcBasic.gridx = 1;
         gbcBasic.weightx = 1.0;
@@ -228,7 +292,7 @@ public class KeycloakClientManagerUI extends JFrame {
         gbcBasic.gridx = 0;
         gbcBasic.gridy = 1;
         gbcBasic.weightx = 0;
-        basicPanel.add(new JLabel("Realm *:"), gbcBasic);
+        basicPanel.add(new JLabel(t(MessageConstants.DialogConfig.REALM) + " *:"), gbcBasic);
 
         gbcBasic.gridx = 1;
         gbcBasic.weightx = 1.0;
@@ -241,11 +305,11 @@ public class KeycloakClientManagerUI extends JFrame {
 
         // ========== 认证配置区域 ==========
         JPanel authPanel = new JPanel(new BorderLayout(5, 5));
-        authPanel.setBorder(BorderFactory.createTitledBorder("认证配置"));
+        authPanel.setBorder(BorderFactory.createTitledBorder(t(MessageConstants.DialogConfig.AUTH)));
 
         // 登录方式选择
         JPanel authTypePanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
-        authTypePanel.add(new JLabel("登录方式:"));
+        authTypePanel.add(new JLabel(t(MessageConstants.DialogConfig.AUTH_TYPE) + ":"));
         authTypeComboBox = new JComboBox<>(AuthType.values());
         authTypeComboBox.setRenderer(new DefaultListCellRenderer() {
             @Override
@@ -281,7 +345,7 @@ public class KeycloakClientManagerUI extends JFrame {
 
         // ========== 代理配置区域 ==========
         JPanel proxyPanel = new JPanel(new GridBagLayout());
-        proxyPanel.setBorder(BorderFactory.createTitledBorder("代理配置"));
+        proxyPanel.setBorder(BorderFactory.createTitledBorder(t(MessageConstants.DialogConfig.PROXY)));
         GridBagConstraints gbcProxy = new GridBagConstraints();
         gbcProxy.insets = new Insets(5, 5, 5, 5);
         gbcProxy.fill = GridBagConstraints.HORIZONTAL;
@@ -291,11 +355,11 @@ public class KeycloakClientManagerUI extends JFrame {
         gbcProxy.gridx = 0;
         gbcProxy.gridy = 0;
         gbcProxy.weightx = 0;
-        proxyPanel.add(new JLabel("使用代理:"), gbcProxy);
+        proxyPanel.add(new JLabel(t(MessageConstants.DialogConfig.USE_PROXY) + ":"), gbcProxy);
 
         gbcProxy.gridx = 1;
         gbcProxy.weightx = 1.0;
-        useProxyCheckBox = new JCheckBox("启用 HTTP/HTTPS 代理");
+        useProxyCheckBox = new JCheckBox(t(MessageConstants.DialogConfig.ENABLE_PROXY));
         useProxyCheckBox.addItemListener(this::onUseProxyChanged);
         proxyPanel.add(useProxyCheckBox, gbcProxy);
 
@@ -303,7 +367,7 @@ public class KeycloakClientManagerUI extends JFrame {
         gbcProxy.gridx = 0;
         gbcProxy.gridy = 1;
         gbcProxy.weightx = 0;
-        proxyPanel.add(new JLabel("代理协议:"), gbcProxy);
+        proxyPanel.add(new JLabel(t(MessageConstants.DialogConfig.PROXY_PROTOCOL) + ":"), gbcProxy);
 
         gbcProxy.gridx = 1;
         gbcProxy.weightx = 1.0;
@@ -326,7 +390,7 @@ public class KeycloakClientManagerUI extends JFrame {
         gbcProxy.gridx = 0;
         gbcProxy.gridy = 2;
         gbcProxy.weightx = 0;
-        proxyPanel.add(new JLabel("代理主机:"), gbcProxy);
+        proxyPanel.add(new JLabel(t(MessageConstants.DialogConfig.PROXY_HOST) + ":"), gbcProxy);
 
         gbcProxy.gridx = 1;
         gbcProxy.weightx = 1.0;
@@ -338,7 +402,7 @@ public class KeycloakClientManagerUI extends JFrame {
         gbcProxy.gridx = 0;
         gbcProxy.gridy = 3;
         gbcProxy.weightx = 0;
-        proxyPanel.add(new JLabel("代理端口:"), gbcProxy);
+        proxyPanel.add(new JLabel(t(MessageConstants.DialogConfig.PROXY_PORT) + ":"), gbcProxy);
 
         gbcProxy.gridx = 1;
         gbcProxy.weightx = 1.0;
@@ -353,7 +417,7 @@ public class KeycloakClientManagerUI extends JFrame {
 
         // ========== SSL 配置区域 ==========
         JPanel sslPanel = new JPanel(new GridBagLayout());
-        sslPanel.setBorder(BorderFactory.createTitledBorder("SSL 配置"));
+        sslPanel.setBorder(BorderFactory.createTitledBorder(t(MessageConstants.DialogConfig.SSL)));
         GridBagConstraints gbcSsl = new GridBagConstraints();
         gbcSsl.insets = new Insets(5, 5, 5, 5);
         gbcSsl.fill = GridBagConstraints.HORIZONTAL;
@@ -363,11 +427,11 @@ public class KeycloakClientManagerUI extends JFrame {
         gbcSsl.gridx = 0;
         gbcSsl.gridy = 0;
         gbcSsl.weightx = 0;
-        sslPanel.add(new JLabel("跳过 SSL 验证:"), gbcSsl);
+        sslPanel.add(new JLabel(t(MessageConstants.DialogConfig.SKIP_SSL) + ":"), gbcSsl);
 
         gbcSsl.gridx = 1;
         gbcSsl.weightx = 1.0;
-        skipSslCheckBox = new JCheckBox("启用（用于自签名证书或 IP 地址访问）");
+        skipSslCheckBox = new JCheckBox(t(MessageConstants.DialogConfig.SKIP_SSL_HINT));
         sslPanel.add(skipSslCheckBox, gbcSsl);
 
         gbc.gridx = 0;
@@ -386,23 +450,23 @@ public class KeycloakClientManagerUI extends JFrame {
         // 按钮面板 - 使用普通按钮样式
         JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 10, 10));
 
-        JButton testBtn = new JButton("测试连接");
+        JButton testBtn = new JButton(t(MessageConstants.Button.TEST));
         testBtn.addActionListener(this::onTestConnection);
         buttonPanel.add(testBtn);
 
-        JButton connectBtn = new JButton("连接");
+        JButton connectBtn = new JButton(t(MessageConstants.Button.CONNECT));
         connectBtn.addActionListener(this::onConnect);
         buttonPanel.add(connectBtn);
 
-        JButton saveBtn = new JButton("保存当前配置");
+        JButton saveBtn = new JButton(t(MessageConstants.Button.SAVE_CURRENT_CONFIG));
         saveBtn.addActionListener(this::onSaveConfig);
         buttonPanel.add(saveBtn);
 
-        JButton saveAsBtn = new JButton("另存为新配置");
+        JButton saveAsBtn = new JButton(t(MessageConstants.Button.SAVE_AS_NEW_CONFIG));
         saveAsBtn.addActionListener(this::onSaveAsNewConfig);
         buttonPanel.add(saveAsBtn);
 
-        JButton switchBtn = new JButton("切换配置");
+        JButton switchBtn = new JButton(t(MessageConstants.Button.SWITCH_CONFIG));
         switchBtn.addActionListener(this::onSwitchConfig);
         buttonPanel.add(switchBtn);
 
@@ -507,7 +571,10 @@ public class KeycloakClientManagerUI extends JFrame {
         panel.setBorder(new EmptyBorder(5, 5, 5, 5));
 
         // 表格
-        String[] columns = {"客户端ID", "名称", "启用状态", "协议", "根URL"};
+        String[] columns = {
+            t(MessageConstants.Client.ID), t(MessageConstants.Client.NAME), t(MessageConstants.Client.ENABLED),
+            t(MessageConstants.Client.PROTOCOL), t(MessageConstants.Client.ROOT_URL)
+        };
         clientTableModel = new DefaultTableModel(columns, 0) {
             @Override
             public boolean isCellEditable(int row, int column) {
@@ -537,19 +604,19 @@ public class KeycloakClientManagerUI extends JFrame {
         // 操作按钮面板
         JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
 
-        JButton refreshBtn = new JButton("刷新列表");
+        JButton refreshBtn = new JButton(t(MessageConstants.Button.REFRESH_LIST));
         refreshBtn.addActionListener(this::onRefreshClients);
         buttonPanel.add(refreshBtn);
 
-        JButton addBtn = new JButton("新增客户端");
+        JButton addBtn = new JButton(t(MessageConstants.Button.ADD_CLIENT));
         addBtn.addActionListener(this::onAddClient);
         buttonPanel.add(addBtn);
 
-        JButton editBtn = new JButton("编辑");
+        JButton editBtn = new JButton(t(MessageConstants.Button.EDIT));
         editBtn.addActionListener(this::onEditClient);
         buttonPanel.add(editBtn);
 
-        JButton deleteBtn = new JButton("删除");
+        JButton deleteBtn = new JButton(t(MessageConstants.Button.DELETE));
         deleteBtn.addActionListener(this::onDeleteClient);
         buttonPanel.add(deleteBtn);
 
@@ -574,22 +641,24 @@ public class KeycloakClientManagerUI extends JFrame {
         gbc.gridx = 0;
         gbc.gridy = row;
         gbc.weightx = 0;
-        searchPanel.add(new JLabel("搜索类型:"), gbc);
+        searchPanel.add(new JLabel(t(MessageConstants.Label.SEARCH_TYPE) + ":"), gbc);
 
         gbc.gridx = 1;
         gbc.weightx = 1.0;
-        searchTypeCombo = new JComboBox<>(new String[]{"全部", "ID", "用户名", "邮箱", "自定义属性"});
+        searchTypeCombo = new JComboBox<>(new String[]{
+            t(MessageConstants.Search.ALL), "ID", t(MessageConstants.User.USERNAME), t(MessageConstants.User.EMAIL), t(MessageConstants.Search.ATTRIBUTE)
+        });
         searchPanel.add(searchTypeCombo, gbc);
 
         // 精确匹配选项
         gbc.gridx = 2;
         gbc.weightx = 0;
-        exactMatchCheckBox = new JCheckBox("精确匹配");
+        exactMatchCheckBox = new JCheckBox(t(MessageConstants.Label.EXACT_MATCH));
         searchPanel.add(exactMatchCheckBox, gbc);
 
         // 每页数量
         gbc.gridx = 3;
-        searchPanel.add(new JLabel("每页:"), gbc);
+        searchPanel.add(new JLabel(t(MessageConstants.Label.PER_PAGE) + ":"), gbc);
 
         gbc.gridx = 4;
         JComboBox<Integer> pageSizeCombo = new JComboBox<>(new Integer[]{10, 20, 50, 100});
@@ -607,7 +676,7 @@ public class KeycloakClientManagerUI extends JFrame {
         gbc.gridx = 0;
         gbc.gridy = row;
         gbc.weightx = 0;
-        searchPanel.add(new JLabel("关键词:"), gbc);
+        searchPanel.add(new JLabel(t(MessageConstants.Label.KEYWORD) + ":"), gbc);
 
         gbc.gridx = 1;
         gbc.weightx = 1.0;
@@ -617,14 +686,14 @@ public class KeycloakClientManagerUI extends JFrame {
         // 搜索按钮
         gbc.gridx = 2;
         gbc.weightx = 0;
-        JButton searchBtn = new JButton("搜索");
+        JButton searchBtn = new JButton(t(MessageConstants.Button.SEARCH));
         searchBtn.addActionListener(e -> searchUsers());
         searchPanel.add(searchBtn, gbc);
 
         // 清除按钮
         gbc.gridx = 3;
         gbc.gridwidth = 2;
-        JButton clearBtn = new JButton("清除");
+        JButton clearBtn = new JButton(t(MessageConstants.Button.CLEAR));
         clearBtn.addActionListener(e -> {
             userSearchField.setText("");
             searchTypeCombo.setSelectedIndex(0);
@@ -647,7 +716,7 @@ public class KeycloakClientManagerUI extends JFrame {
 
         // 监听搜索类型变化，显示/隐藏属性条件面板
         searchTypeCombo.addActionListener(e -> {
-            boolean isCustomAttr = "自定义属性".equals(searchTypeCombo.getSelectedItem());
+            boolean isCustomAttr = t(MessageConstants.Search.ATTRIBUTE).equals(searchTypeCombo.getSelectedItem());
             attributePanel.setVisible(isCustomAttr);
             userSearchField.setEnabled(!isCustomAttr);
             if (isCustomAttr) {
@@ -670,7 +739,11 @@ public class KeycloakClientManagerUI extends JFrame {
         attributePanel.setVisible(false);
 
         // 用户表格
-        String[] columns = {"用户ID", "用户名", "表示名", "邮箱", "姓名", "启用状态", "邮箱验证"};
+        String[] columns = {
+            t(MessageConstants.User.ID), t(MessageConstants.User.USERNAME), t(MessageConstants.User.DISPLAY_NAME),
+            t(MessageConstants.User.EMAIL), t(MessageConstants.User.FULL_NAME), t(MessageConstants.User.ENABLED),
+            t(MessageConstants.User.EMAIL_VERIFIED)
+        };
         userTableModel = new DefaultTableModel(columns, 0) {
             @Override
             public boolean isCellEditable(int row, int column) {
@@ -737,17 +810,17 @@ public class KeycloakClientManagerUI extends JFrame {
         paginationPanel.add(prevPageBtn);
 
         // 页码信息
-        pageInfoLabel = new JLabel("第 1 页 / 共 1 页");
+        pageInfoLabel = new JLabel("Page 1 / 1");
         paginationPanel.add(pageInfoLabel);
 
         // 跳转到指定页
-        paginationPanel.add(new JLabel("跳转至:"));
+        paginationPanel.add(new JLabel(t(MessageConstants.Label.GOTO_PAGE) + ":"));
         JTextField gotoPageField = new JTextField(3);
         gotoPageField.setHorizontalAlignment(JTextField.CENTER);
         paginationPanel.add(gotoPageField);
-        paginationPanel.add(new JLabel("页"));
+        paginationPanel.add(new JLabel(t(MessageConstants.Label.PAGE)));
 
-        JButton gotoPageBtn = new JButton("GO");
+        JButton gotoPageBtn = new JButton(t(MessageConstants.Label.GO));
         gotoPageBtn.addActionListener(e -> {
             try {
                 int targetPage = Integer.parseInt(gotoPageField.getText().trim()) - 1; // 转换为0-based
@@ -760,12 +833,12 @@ public class KeycloakClientManagerUI extends JFrame {
                 }
                 gotoPageField.setText("");
             } catch (NumberFormatException ex) {
-                showWarning(this, "提示", "请输入有效的页码");
+                showWarning(this, t(MessageConstants.Msg.WARNING), t(MessageConstants.Validation.INVALID_PAGE));
             }
         });
         paginationPanel.add(gotoPageBtn);
 
-        nextPageBtn = new JButton("下一页");
+        nextPageBtn = new JButton(t(MessageConstants.Button.NEXT_PAGE));
         nextPageBtn.addActionListener(e -> {
             int totalPages = (int) Math.ceil((double) totalUsers / pageSize);
             if (currentPage < totalPages - 1) {
@@ -776,7 +849,7 @@ public class KeycloakClientManagerUI extends JFrame {
         paginationPanel.add(nextPageBtn);
 
         // 末页按钮
-        lastPageBtn = new JButton("末页");
+        lastPageBtn = new JButton(t(MessageConstants.Button.LAST_PAGE));
         lastPageBtn.addActionListener(e -> {
             int totalPages = (int) Math.ceil((double) totalUsers / pageSize);
             if (totalPages > 0 && currentPage < totalPages - 1) {
@@ -790,19 +863,19 @@ public class KeycloakClientManagerUI extends JFrame {
         JPanel buttonPanel = new JPanel(new BorderLayout());
 
         JPanel leftButtonPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
-        JButton refreshBtn = new JButton("刷新列表");
+        JButton refreshBtn = new JButton(t(MessageConstants.Button.REFRESH_LIST));
         refreshBtn.addActionListener(e -> loadUsers());
         leftButtonPanel.add(refreshBtn);
 
-        JButton addBtn = new JButton("新增用户");
+        JButton addBtn = new JButton(t(MessageConstants.Button.ADD_USER));
         addBtn.addActionListener(this::onAddUser);
         leftButtonPanel.add(addBtn);
 
-        JButton editBtn = new JButton("编辑");
+        JButton editBtn = new JButton(t(MessageConstants.Button.EDIT));
         editBtn.addActionListener(this::onEditUser);
         leftButtonPanel.add(editBtn);
 
-        JButton deleteBtn = new JButton("删除");
+        JButton deleteBtn = new JButton(t(MessageConstants.Button.DELETE));
         deleteBtn.addActionListener(this::onDeleteUser);
         leftButtonPanel.add(deleteBtn);
 
@@ -851,7 +924,7 @@ public class KeycloakClientManagerUI extends JFrame {
 
     private void autoConnect() {
         if (currentConfig == null) {
-            statusLabel.setText("配置不完整，请手动连接");
+            statusLabel.setText(t(MessageConstants.Status.CONFIG_INCOMPLETE));
             statusLabel.setForeground(Color.ORANGE);
             return;
         }
@@ -859,7 +932,7 @@ public class KeycloakClientManagerUI extends JFrame {
         // 验证配置完整性
         if (currentConfig.getServerUrl() == null || currentConfig.getServerUrl().isEmpty() ||
             currentConfig.getRealm() == null || currentConfig.getRealm().isEmpty()) {
-            statusLabel.setText("配置不完整，请手动连接");
+            statusLabel.setText(t(MessageConstants.Status.CONFIG_INCOMPLETE));
             statusLabel.setForeground(Color.ORANGE);
             return;
         }
@@ -868,14 +941,14 @@ public class KeycloakClientManagerUI extends JFrame {
         if (currentConfig.getAuthType() == AuthType.USERNAME_PASSWORD) {
             if (currentConfig.getUsername() == null || currentConfig.getUsername().isEmpty() ||
                 currentConfig.getPassword() == null || currentConfig.getPassword().isEmpty()) {
-                statusLabel.setText("用户名密码不完整，请手动连接");
+                statusLabel.setText(t(MessageConstants.Status.USERNAME_PASSWORD_INCOMPLETE));
                 statusLabel.setForeground(Color.ORANGE);
                 return;
             }
         } else {
             if (currentConfig.getClientId() == null || currentConfig.getClientId().isEmpty() ||
                 currentConfig.getClientSecret() == null || currentConfig.getClientSecret().isEmpty()) {
-                statusLabel.setText("客户端凭据不完整，请手动连接");
+                statusLabel.setText(t(MessageConstants.Status.CLIENT_CREDENTIALS_INCOMPLETE));
                 statusLabel.setForeground(Color.ORANGE);
                 return;
             }
@@ -883,12 +956,12 @@ public class KeycloakClientManagerUI extends JFrame {
 
         try {
             keycloakService = KeycloakService.fromConfig(currentConfig);
-            statusLabel.setText("已连接到: " + currentConfig.getServerUrl());
+            statusLabel.setText(t(MessageConstants.Status.CONNECTED_TO) + ": " + currentConfig.getServerUrl());
             statusLabel.setForeground(Color.GREEN.darker());
             loadClients();
             loadUsers();
         } catch (Exception ex) {
-            statusLabel.setText("自动连接失败: " + ex.getMessage());
+            statusLabel.setText(t(MessageConstants.Status.AUTO_CONNECT_FAILED) + ": " + ex.getMessage());
             statusLabel.setForeground(Color.RED);
         }
     }
@@ -911,31 +984,31 @@ public class KeycloakClientManagerUI extends JFrame {
 
         // 验证必填项
         if (testConfig.getServerUrl().isEmpty() || testConfig.getRealm().isEmpty()) {
-            showError(this, "错误", "请填写服务器地址和 Realm");
+            showError(this, t(MessageConstants.Msg.ERROR), t(MessageConstants.Validation.SERVER_URL_AND_REALM_REQUIRED));
             return;
         }
 
         // 根据登录方式验证凭据
         if (testConfig.getAuthType() == AuthType.USERNAME_PASSWORD) {
             if (testConfig.getUsername().isEmpty() || testConfig.getPassword().isEmpty()) {
-                showError(this, "错误", "请填写用户名和密码");
+                showError(this, t(MessageConstants.Msg.ERROR), t(MessageConstants.Validation.USERNAME_AND_PASSWORD_REQUIRED));
                 return;
             }
         } else {
             if (testConfig.getClientId().isEmpty() || testConfig.getClientSecret().isEmpty()) {
-                showError(this, "错误", "请填写客户端 ID 和客户端密钥");
+                showError(this, t(MessageConstants.Msg.ERROR), t(MessageConstants.Validation.CLIENT_ID_AND_SECRET_REQUIRED));
                 return;
             }
         }
 
         // 验证代理配置
         if (testConfig.isUseProxy() && testConfig.getProxyHost().isEmpty()) {
-            showError(this, "错误", "请填写代理主机地址");
+            showError(this, t(MessageConstants.Msg.ERROR), t(MessageConstants.Validation.PROXY_HOST_REQUIRED));
             return;
         }
 
         // 显示测试中的提示
-        statusLabel.setText("正在测试连接...");
+        statusLabel.setText(t(MessageConstants.Status.TESTING_CONNECTION));
         statusLabel.setForeground(Color.BLUE);
 
         // 在后台线程中执行连接测试
@@ -948,17 +1021,17 @@ public class KeycloakClientManagerUI extends JFrame {
                 try (KeycloakService testService = KeycloakService.fromConfig(testConfig)) {
                     // 尝试获取服务器信息来验证连接
                     testService.getClients();
-                    resultMessage = "连接测试成功！\n\n" +
-                            "服务器: " + testConfig.getServerUrl() + "\n" +
-                            "Realm: " + testConfig.getRealm() + "\n" +
-                            "登录方式: " + testConfig.getAuthType().getDisplayName();
+                    resultMessage = t(MessageConstants.Msg.CONNECTION_TEST_SUCCESS) + "\n\n" +
+                            t(MessageConstants.DialogConfig.SERVER_URL) + ": " + testConfig.getServerUrl() + "\n" +
+                            t(MessageConstants.DialogConfig.REALM) + ": " + testConfig.getRealm() + "\n" +
+                            t(MessageConstants.DialogConfig.AUTH_TYPE) + ": " + testConfig.getAuthType().getDisplayName();
                     if (testConfig.isUseProxy()) {
-                        resultMessage += "\n代理: " + testConfig.getProxyProtocol().getDisplayName() +
+                        resultMessage += "\n" + t(MessageConstants.DialogConfig.PROXY) + ": " + testConfig.getProxyProtocol().getDisplayName() +
                                 "://" + testConfig.getProxyHost() + ":" + testConfig.getProxyPort();
                     }
                     isSuccess = true;
                 } catch (Exception ex) {
-                    resultMessage = "连接测试失败！\n\n错误信息: " + ex.getMessage();
+                    resultMessage = t(MessageConstants.Msg.CONNECTION_TEST_FAILED) + "\n\n" + t(MessageConstants.Msg.ERROR_INFO) + ": " + ex.getMessage();
                     isSuccess = false;
                 }
                 return null;
@@ -967,13 +1040,13 @@ public class KeycloakClientManagerUI extends JFrame {
             @Override
             protected void done() {
                 if (isSuccess) {
-                    statusLabel.setText("连接测试成功");
+                    statusLabel.setText(t(MessageConstants.Status.CONNECTION_TEST_SUCCESS));
                     statusLabel.setForeground(Color.GREEN.darker());
-                    showInfo(KeycloakClientManagerUI.this, "连接测试结果", resultMessage);
+                    showInfo(KeycloakClientManagerUI.this, t(MessageConstants.Dialog.CONNECTION_TEST_RESULT), resultMessage);
                 } else {
-                    statusLabel.setText("连接测试失败");
+                    statusLabel.setText(t(MessageConstants.Status.CONNECTION_TEST_FAILED));
                     statusLabel.setForeground(Color.RED);
-                    showError(KeycloakClientManagerUI.this, "连接测试结果", resultMessage);
+                    showError(KeycloakClientManagerUI.this, t(MessageConstants.Dialog.CONNECTION_TEST_RESULT), resultMessage);
                 }
             }
         };
@@ -983,7 +1056,7 @@ public class KeycloakClientManagerUI extends JFrame {
 
     private void onConnect(ActionEvent e) {
         if (currentConfig == null) {
-            showError(this, "错误", "当前没有配置，请先保存配置");
+            showError(this, t(MessageConstants.Msg.ERROR), t(MessageConstants.Msg.NO_CONFIG_TO_CONNECT));
             return;
         }
 
@@ -1003,26 +1076,26 @@ public class KeycloakClientManagerUI extends JFrame {
 
         // 验证必填项
         if (currentConfig.getServerUrl().isEmpty() || currentConfig.getRealm().isEmpty()) {
-            showError(this, "错误", "请填写服务器地址和 Realm");
+            showError(this, t(MessageConstants.Msg.ERROR), t(MessageConstants.Validation.SERVER_URL_AND_REALM_REQUIRED));
             return;
         }
 
         // 根据登录方式验证凭据
         if (currentConfig.getAuthType() == AuthType.USERNAME_PASSWORD) {
             if (currentConfig.getUsername().isEmpty() || currentConfig.getPassword().isEmpty()) {
-                showError(this, "错误", "请填写用户名和密码");
+                showError(this, t(MessageConstants.Msg.ERROR), t(MessageConstants.Validation.USERNAME_AND_PASSWORD_REQUIRED));
                 return;
             }
         } else {
             if (currentConfig.getClientId().isEmpty() || currentConfig.getClientSecret().isEmpty()) {
-                showError(this, "错误", "请填写客户端 ID 和客户端密钥");
+                showError(this, t(MessageConstants.Msg.ERROR), t(MessageConstants.Validation.CLIENT_ID_AND_SECRET_REQUIRED));
                 return;
             }
         }
 
         // 验证代理配置
         if (currentConfig.isUseProxy() && currentConfig.getProxyHost().isEmpty()) {
-            showError(this, "错误", "请填写代理主机地址");
+            showError(this, t(MessageConstants.Msg.ERROR), t(MessageConstants.Validation.PROXY_HOST_REQUIRED));
             return;
         }
 
@@ -1030,22 +1103,22 @@ public class KeycloakClientManagerUI extends JFrame {
             keycloakService = KeycloakService.fromConfig(currentConfig);
             // 验证连接是否真正有效
             keycloakService.testConnection();
-            statusLabel.setText("已连接到: " + currentConfig.getServerUrl());
+            statusLabel.setText(t(MessageConstants.Status.CONNECTED_TO) + ": " + currentConfig.getServerUrl());
             statusLabel.setForeground(Color.GREEN.darker());
             loadClients();
             loadUsers();
-            showInfo(this, "连接成功", "已成功连接到 Keycloak 服务器:\n" + currentConfig.getServerUrl());
+            showInfo(this, t(MessageConstants.Msg.CONNECTION_SUCCESS), t(MessageConstants.Msg.CONNECTED_TO_SERVER) + ":\n" + currentConfig.getServerUrl());
         } catch (Exception ex) {
             keycloakService = null;
-            showError(this, "连接失败", ex.getMessage());
-            statusLabel.setText("连接失败");
+            showError(this, t(MessageConstants.Msg.CONNECTION_FAILED), ex.getMessage());
+            statusLabel.setText(t(MessageConstants.Status.CONNECTION_TEST_FAILED));
             statusLabel.setForeground(Color.RED);
         }
     }
 
     private void onSaveConfig(ActionEvent e) {
         if (currentConfig == null) {
-            showError(this, "错误", "当前没有配置可保存");
+            showError(this, t(MessageConstants.Msg.ERROR), t(MessageConstants.Msg.NO_CONFIG_TO_SAVE));
             return;
         }
 
@@ -1064,14 +1137,14 @@ public class KeycloakClientManagerUI extends JFrame {
 
         try {
             configStorage.saveConfig(currentConfig);
-            showInfo(this, "成功", "配置已保存");
+            showInfo(this, t(MessageConstants.Msg.SUCCESS), t(MessageConstants.Msg.CONFIG_SAVED));
         } catch (Exception ex) {
-            showError(this, "保存失败", ex.getMessage());
+            showError(this, t(MessageConstants.Msg.SAVE_FAILED), ex.getMessage());
         }
     }
 
     private void onSaveAsNewConfig(ActionEvent e) {
-        String name = JOptionPane.showInputDialog(this, "请输入新配置名称:", "保存新配置", JOptionPane.PLAIN_MESSAGE);
+        String name = JOptionPane.showInputDialog(this, t(MessageConstants.Msg.ENTER_NEW_CONFIG_NAME) + ":", t(MessageConstants.Dialog.SAVE_NEW_CONFIG), JOptionPane.PLAIN_MESSAGE);
         if (name == null || name.trim().isEmpty()) {
             return;
         }
@@ -1094,17 +1167,17 @@ public class KeycloakClientManagerUI extends JFrame {
         try {
             configStorage.saveConfig(newConfig);
             currentConfig = newConfig;
-            setTitle("Keycloak 管理工具 - " + newConfig.getName());
-            showInfo(this, "成功", "新配置已保存");
+            setTitle(t(MessageConstants.App.TITLE) + " - " + newConfig.getName());
+            showInfo(this, t(MessageConstants.Msg.SUCCESS), t(MessageConstants.Msg.NEW_CONFIG_SAVED));
         } catch (Exception ex) {
-            showError(this, "保存失败", ex.getMessage());
+            showError(this, t(MessageConstants.Msg.SAVE_FAILED), ex.getMessage());
         }
     }
 
     private void onSwitchConfig(ActionEvent e) {
         int confirm = JOptionPane.showConfirmDialog(this,
-            "切换配置将关闭当前窗口并重新启动，是否继续?",
-            "确认切换",
+            t(MessageConstants.Msg.SWITCH_CONFIG_CONFIRM),
+            t(MessageConstants.Dialog.CONFIRM_SWITCH),
             JOptionPane.YES_NO_OPTION);
 
         if (confirm == JOptionPane.YES_OPTION) {
@@ -1129,7 +1202,7 @@ public class KeycloakClientManagerUI extends JFrame {
 
     private void loadClients() {
         if (keycloakService == null) {
-            showWarning(this, "提示", "请先连接到 Keycloak");
+            showWarning(this, t(MessageConstants.Msg.WARNING), t(MessageConstants.Msg.CONNECT_FIRST));
             return;
         }
 
@@ -1140,14 +1213,14 @@ public class KeycloakClientManagerUI extends JFrame {
                 clientTableModel.addRow(new Object[]{
                     client.getClientId(),
                     client.getName(),
-                    client.isEnabled() ? "启用" : "禁用",
+                    client.isEnabled() ? t(MessageConstants.Status.ENABLED) : t(MessageConstants.Status.DISABLED),
                     client.getProtocol(),
                     client.getRootUrl()
                 });
             }
-            statusLabel.setText("共 " + clients.size() + " 个客户端");
+            statusLabel.setText(t(MessageConstants.Msg.CLIENT_COUNT, clients.size()));
         } catch (Exception ex) {
-            showError(this, "加载客户端失败", ex.getMessage());
+            showError(this, t(MessageConstants.Msg.LOAD_CLIENT_FAILED), ex.getMessage());
         }
     }
 
@@ -1157,7 +1230,7 @@ public class KeycloakClientManagerUI extends JFrame {
 
     private void onAddClient(ActionEvent e) {
         if (keycloakService == null) {
-            showWarning(this, "提示", "请先连接到 Keycloak");
+            showWarning(this, t(MessageConstants.Msg.WARNING), t(MessageConstants.Msg.CONNECT_FIRST));
             return;
         }
 
@@ -1168,9 +1241,9 @@ public class KeycloakClientManagerUI extends JFrame {
             try {
                 keycloakService.createClient(dialog.getClientInfo());
                 loadClients();
-                showInfo(this, "成功", "客户端创建成功");
+                showInfo(this, t(MessageConstants.Msg.SUCCESS), t(MessageConstants.Msg.CLIENT_CREATE_SUCCESS));
             } catch (Exception ex) {
-                showError(this, "创建失败", ex.getMessage());
+                showError(this, t(MessageConstants.Msg.CREATE_FAILED), ex.getMessage());
             }
         }
     }
@@ -1178,7 +1251,7 @@ public class KeycloakClientManagerUI extends JFrame {
     private void onEditClient(ActionEvent e) {
         int selectedRow = clientTable.getSelectedRow();
         if (selectedRow < 0) {
-            showWarning(this, "提示", "请先选择一个客户端");
+            showWarning(this, t(MessageConstants.Msg.WARNING), t(MessageConstants.Msg.SELECT_CLIENT_FIRST));
             return;
         }
 
@@ -1186,7 +1259,7 @@ public class KeycloakClientManagerUI extends JFrame {
         ClientInfo clientInfo = keycloakService.getClientByClientId(clientId);
         
         if (clientInfo == null) {
-            showError(this, "错误", "无法获取客户端信息");
+            showError(this, t(MessageConstants.Msg.ERROR), t(MessageConstants.Msg.GET_CLIENT_FAILED));
             return;
         }
 
@@ -1197,9 +1270,9 @@ public class KeycloakClientManagerUI extends JFrame {
             try {
                 keycloakService.updateClient(clientId, dialog.getClientInfo());
                 loadClients();
-                showInfo(this, "成功", "客户端更新成功");
+                showInfo(this, t(MessageConstants.Msg.SUCCESS), t(MessageConstants.Msg.CLIENT_UPDATE_SUCCESS));
             } catch (Exception ex) {
-                showError(this, "更新失败", ex.getMessage());
+                showError(this, t(MessageConstants.Msg.UPDATE_FAILED), ex.getMessage());
             }
         }
     }
@@ -1207,23 +1280,23 @@ public class KeycloakClientManagerUI extends JFrame {
     private void onDeleteClient(ActionEvent e) {
         int selectedRow = clientTable.getSelectedRow();
         if (selectedRow < 0) {
-            showWarning(this, "提示", "请先选择一个客户端");
+            showWarning(this, t(MessageConstants.Msg.HINT), t(MessageConstants.Msg.SELECT_CLIENT_FIRST));
             return;
         }
 
         String clientId = (String) clientTableModel.getValueAt(selectedRow, 0);
         int confirm = JOptionPane.showConfirmDialog(this,
-            "确定要删除客户端 '" + clientId + "' 吗?",
-            "确认删除",
+            t(MessageConstants.Msg.CONFIRM_DELETE_CLIENT) + " '" + clientId + "'?",
+            t(MessageConstants.Msg.CONFIRM_DELETE),
             JOptionPane.YES_NO_OPTION);
 
         if (confirm == JOptionPane.YES_OPTION) {
             try {
                 keycloakService.deleteClient(clientId);
                 loadClients();
-                showInfo(this, "成功", "删除成功");
+                showInfo(this, t(MessageConstants.Msg.SUCCESS), t(MessageConstants.Msg.DELETE_SUCCESS));
             } catch (Exception ex) {
-                showError(this, "删除失败", ex.getMessage());
+                showError(this, t(MessageConstants.Msg.DELETE_FAILED), ex.getMessage());
             }
         }
     }
@@ -1249,13 +1322,13 @@ public class KeycloakClientManagerUI extends JFrame {
             PageResult<UserInfo> result = keycloakService.getUsers(currentPage, pageSize);
             displayUsers(result);
         } catch (Exception ex) {
-            showError(this, "加载用户失败", ex.getMessage());
+            showError(this, t(MessageConstants.Msg.LOAD_USER_FAILED), ex.getMessage());
         }
     }
 
     private void searchUsers() {
         if (keycloakService == null) {
-            showWarning(this, "提示", "请先连接到 Keycloak");
+            showWarning(this, t(MessageConstants.Msg.HINT), t(MessageConstants.Msg.CONNECT_FIRST));
             return;
         }
 
@@ -1265,10 +1338,10 @@ public class KeycloakClientManagerUI extends JFrame {
         try {
             PageResult<UserInfo> result;
 
-            if ("自定义属性".equals(searchType)) {
+            if (t(MessageConstants.Search.ATTRIBUTE).equals(searchType)) {
                 // 多属性条件搜索（AND 逻辑）
                 if (attrNameFields.isEmpty()) {
-                    showWarning(this, "提示", "请至少添加一个属性条件");
+                    showWarning(this, t(MessageConstants.Msg.HINT), t(MessageConstants.Msg.ADD_ATTR_CONDITION));
                     return;
                 }
 
@@ -1287,7 +1360,7 @@ public class KeycloakClientManagerUI extends JFrame {
                 }
 
                 if (attrNames.isEmpty()) {
-                    showWarning(this, "提示", "请至少输入一个属性名");
+                    showWarning(this, t(MessageConstants.Msg.HINT), t(MessageConstants.Msg.ATTR_NAME_REQUIRED));
                     return;
                 }
 
@@ -1299,15 +1372,15 @@ public class KeycloakClientManagerUI extends JFrame {
                     loadUsers();
                     return;
                 }
-                String type = "全部".equals(searchType) ? "all" :
-                              "ID".equals(searchType) ? "id" :
-                              "用户名".equals(searchType) ? "username" : "email";
+                String type = t(MessageConstants.Search.ALL).equals(searchType) ? MessageConstants.SearchType.ALL :
+                              "ID".equals(searchType) ? MessageConstants.SearchType.ID :
+                              t(MessageConstants.User.USERNAME).equals(searchType) ? MessageConstants.SearchType.USERNAME : MessageConstants.SearchType.EMAIL;
                 result = keycloakService.searchUsers(search, type, exactMatch, currentPage, pageSize);
             }
 
             displayUsers(result);
         } catch (Exception ex) {
-            showError(this, "搜索用户失败", ex.getMessage());
+            showError(this, t(MessageConstants.Msg.SEARCH_USER_FAILED), ex.getMessage());
         }
     }
 
@@ -1323,16 +1396,16 @@ public class KeycloakClientManagerUI extends JFrame {
                 user.getDisplayName(),
                 user.getEmail() != null ? user.getEmail() : "",
                 user.getFullName(),
-                user.isEnabled() ? "启用" : "禁用",
-                user.isEmailVerified() ? "是" : "否"
+                user.isEnabled() ? t(MessageConstants.Status.ENABLED) : t(MessageConstants.Status.DISABLED),
+                user.isEmailVerified() ? t(MessageConstants.Status.YES) : t(MessageConstants.Status.NO)
             });
         }
 
         // 更新分页信息
         int totalPages = result.getTotalPages();
         int currentPageNum = result.getPage() + 1;
-        pageInfoLabel.setText(String.format("第 %d 页 / 共 %d 页 (共 %d 条)",
-            currentPageNum, Math.max(1, totalPages), totalUsers));
+        pageInfoLabel.setText(t(MessageConstants.User.PAGE_INFO, currentPageNum, Math.max(1, totalPages))
+            + " (" + t(MessageConstants.User.TOTAL) + " " + totalUsers + ")");
 
         // 更新按钮状态
         if (firstPageBtn != null) firstPageBtn.setEnabled(result.getPage() > 0);
@@ -1340,12 +1413,12 @@ public class KeycloakClientManagerUI extends JFrame {
         nextPageBtn.setEnabled(result.getPage() < totalPages - 1);
         if (lastPageBtn != null) lastPageBtn.setEnabled(result.getPage() < totalPages - 1);
 
-        statusLabel.setText(String.format("共 %d 个用户，当前显示 %d 条", totalUsers, users.size()));
+        statusLabel.setText(t(MessageConstants.Msg.USER_COUNT, totalUsers) + ", " + t(MessageConstants.User.PAGE_SIZE, users.size()));
     }
 
     private void onAddUser(ActionEvent e) {
         if (keycloakService == null) {
-            showWarning(this, "提示", "请先连接到 Keycloak");
+            showWarning(this, t(MessageConstants.Msg.HINT), t(MessageConstants.Msg.CONNECT_FIRST));
             return;
         }
 
@@ -1356,9 +1429,9 @@ public class KeycloakClientManagerUI extends JFrame {
             try {
                 keycloakService.createUser(dialog.getUserInfo());
                 loadUsers();
-                showInfo(this, "成功", "用户创建成功");
+                showInfo(this, t(MessageConstants.Msg.SUCCESS), t(MessageConstants.Msg.USER_CREATE_SUCCESS));
             } catch (Exception ex) {
-                showError(this, "创建失败", ex.getMessage());
+                showError(this, t(MessageConstants.Msg.CREATE_FAILED), ex.getMessage());
             }
         }
     }
@@ -1366,7 +1439,7 @@ public class KeycloakClientManagerUI extends JFrame {
     private void onEditUser(ActionEvent e) {
         int selectedRow = userTable.getSelectedRow();
         if (selectedRow < 0) {
-            showWarning(this, "提示", "请先选择一个用户");
+            showWarning(this, t(MessageConstants.Msg.HINT), t(MessageConstants.Msg.SELECT_USER_FIRST));
             return;
         }
 
@@ -1374,7 +1447,7 @@ public class KeycloakClientManagerUI extends JFrame {
         UserInfo userInfo = keycloakService.getUserById(userId);
         
         if (userInfo == null) {
-            showError(this, "错误", "无法获取用户信息");
+            showError(this, t(MessageConstants.Msg.ERROR), t(MessageConstants.Msg.GET_USER_FAILED));
             return;
         }
 
@@ -1385,9 +1458,9 @@ public class KeycloakClientManagerUI extends JFrame {
             try {
                 keycloakService.updateUser(userId, dialog.getUserInfo());
                 loadUsers();
-                showInfo(this, "成功", "用户更新成功");
+                showInfo(this, t(MessageConstants.Msg.SUCCESS), t(MessageConstants.Msg.USER_UPDATE_SUCCESS));
             } catch (Exception ex) {
-                showError(this, "更新失败", ex.getMessage());
+                showError(this, t(MessageConstants.Msg.UPDATE_FAILED), ex.getMessage());
             }
         }
     }
@@ -1395,7 +1468,7 @@ public class KeycloakClientManagerUI extends JFrame {
     private void onDeleteUser(ActionEvent e) {
         int selectedRow = userTable.getSelectedRow();
         if (selectedRow < 0) {
-            showWarning(this, "提示", "请先选择一个用户");
+            showWarning(this, t(MessageConstants.Msg.HINT), t(MessageConstants.Msg.SELECT_USER_FIRST));
             return;
         }
 
@@ -1403,17 +1476,17 @@ public class KeycloakClientManagerUI extends JFrame {
         String username = (String) userTableModel.getValueAt(selectedRow, 1);
         
         int confirm = JOptionPane.showConfirmDialog(this,
-            "确定要删除用户 '" + username + "' 吗?",
-            "确认删除",
+            t(MessageConstants.Msg.CONFIRM_DELETE_USER) + " '" + username + "'?",
+            t(MessageConstants.Msg.CONFIRM_DELETE),
             JOptionPane.YES_NO_OPTION);
 
         if (confirm == JOptionPane.YES_OPTION) {
             try {
                 keycloakService.deleteUser(userId);
                 loadUsers();
-                showInfo(this, "成功", "删除成功");
+                showInfo(this, t(MessageConstants.Msg.SUCCESS), t(MessageConstants.Msg.DELETE_SUCCESS));
             } catch (Exception ex) {
-                showError(this, "删除失败", ex.getMessage());
+                showError(this, t(MessageConstants.Msg.DELETE_FAILED), ex.getMessage());
             }
         }
     }
@@ -1430,7 +1503,7 @@ public class KeycloakClientManagerUI extends JFrame {
 
     private JPanel createAttributeSearchPanel() {
         JPanel panel = new JPanel(new BorderLayout(5, 5));
-        panel.setBorder(BorderFactory.createTitledBorder("属性条件 (AND 逻辑)"));
+        panel.setBorder(BorderFactory.createTitledBorder(t(MessageConstants.Label.ATTR_CONDITIONS)));
 
         // 条件列表面板 - 不使用滚动条，让面板自然扩展
         attributeConditionsPanel = new JPanel(new GridBagLayout());
@@ -1438,11 +1511,11 @@ public class KeycloakClientManagerUI extends JFrame {
 
         // 按钮面板
         JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
-        JButton addBtn = new JButton("添加条件");
+        JButton addBtn = new JButton(t(MessageConstants.Label.ADD_CONDITION));
         addBtn.addActionListener(e -> addAttributeConditionRow());
         buttonPanel.add(addBtn);
 
-        JButton clearBtn = new JButton("清除条件");
+        JButton clearBtn = new JButton(t(MessageConstants.Label.CLEAR_CONDITIONS));
         clearBtn.addActionListener(e -> clearAttributeConditions());
         buttonPanel.add(clearBtn);
 
@@ -1461,7 +1534,7 @@ public class KeycloakClientManagerUI extends JFrame {
 
     private void addAttributeConditionRow() {
         if (attrNameFields.size() >= 5) {
-            showWarning(this, "提示", "最多支持 5 个属性条件");
+            showWarning(this, t(MessageConstants.Msg.HINT), t(MessageConstants.Msg.MAX_ATTR_CONDITIONS));
             return;
         }
 
@@ -1474,7 +1547,7 @@ public class KeycloakClientManagerUI extends JFrame {
         // 属性名输入
         gbc.gridx = 0;
         gbc.weightx = 0;
-        attributeConditionsPanel.add(new JLabel("属性" + (row + 1) + ":"), gbc);
+        attributeConditionsPanel.add(new JLabel(t(MessageConstants.Label.ATTR_NAME) + (row + 1) + ":"), gbc);
 
         gbc.gridx = 1;
         gbc.weightx = 0.4;
@@ -1485,7 +1558,7 @@ public class KeycloakClientManagerUI extends JFrame {
         // 属性值输入
         gbc.gridx = 2;
         gbc.weightx = 0;
-        attributeConditionsPanel.add(new JLabel("值:"), gbc);
+        attributeConditionsPanel.add(new JLabel(t(MessageConstants.Label.ATTR_VALUE) + ":"), gbc);
 
         gbc.gridx = 3;
         gbc.weightx = 0.6;
@@ -1496,7 +1569,7 @@ public class KeycloakClientManagerUI extends JFrame {
         // 删除按钮
         gbc.gridx = 4;
         gbc.weightx = 0;
-        JButton deleteBtn = new JButton("删除");
+        JButton deleteBtn = new JButton(t(MessageConstants.Button.DELETE));
         final int index = row;
         deleteBtn.addActionListener(e -> removeAttributeConditionRow(index));
         attributeConditionsPanel.add(deleteBtn, gbc);
@@ -1534,7 +1607,7 @@ public class KeycloakClientManagerUI extends JFrame {
             // 属性名输入
             gbc.gridx = 0;
             gbc.weightx = 0;
-            attributeConditionsPanel.add(new JLabel("属性" + (i + 1) + ":"), gbc);
+            attributeConditionsPanel.add(new JLabel(t(MessageConstants.Label.ATTR_NAME) + (i + 1) + ":"), gbc);
 
             gbc.gridx = 1;
             gbc.weightx = 0.4;
@@ -1543,7 +1616,7 @@ public class KeycloakClientManagerUI extends JFrame {
             // 属性值输入
             gbc.gridx = 2;
             gbc.weightx = 0;
-            attributeConditionsPanel.add(new JLabel("值:"), gbc);
+            attributeConditionsPanel.add(new JLabel(t(MessageConstants.Label.ATTR_VALUE) + ":"), gbc);
 
             gbc.gridx = 3;
             gbc.weightx = 0.6;
@@ -1552,7 +1625,7 @@ public class KeycloakClientManagerUI extends JFrame {
             // 删除按钮
             gbc.gridx = 4;
             gbc.weightx = 0;
-            JButton deleteBtn = new JButton("删除");
+            JButton deleteBtn = new JButton(t(MessageConstants.Button.DELETE));
             final int idx = i;
             deleteBtn.addActionListener(e -> removeAttributeConditionRow(idx));
             attributeConditionsPanel.add(deleteBtn, gbc);
