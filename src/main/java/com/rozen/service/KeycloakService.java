@@ -678,6 +678,18 @@ public class KeycloakService implements AutoCloseable {
         return info;
     }
 
+    /**
+     * 测试连接是否有效
+     */
+    public void testConnection() {
+        try {
+            // 尝试获取 realm 信息来验证连接
+            keycloak.realm(realm).toRepresentation();
+        } catch (Exception e) {
+            throw new RuntimeException("连接测试失败: " + e.getMessage(), e);
+        }
+    }
+
     @Override
     public void close() {
         if (keycloak != null) {

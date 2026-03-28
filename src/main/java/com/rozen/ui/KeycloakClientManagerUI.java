@@ -1026,11 +1026,15 @@ public class KeycloakClientManagerUI extends JFrame {
 
         try {
             keycloakService = KeycloakService.fromConfig(currentConfig);
+            // 验证连接是否真正有效
+            keycloakService.testConnection();
             statusLabel.setText("已连接到: " + currentConfig.getServerUrl());
             statusLabel.setForeground(Color.GREEN.darker());
             loadClients();
             loadUsers();
+            showInfo(this, "连接成功", "已成功连接到 Keycloak 服务器:\n" + currentConfig.getServerUrl());
         } catch (Exception ex) {
+            keycloakService = null;
             showError(this, "连接失败", ex.getMessage());
             statusLabel.setText("连接失败");
             statusLabel.setForeground(Color.RED);
