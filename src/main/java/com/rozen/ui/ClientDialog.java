@@ -1,5 +1,7 @@
 package com.rozen.ui;
 
+import com.rozen.model.ClientInfo;
+
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import java.awt.*;

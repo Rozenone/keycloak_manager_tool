@@ -1,4 +1,4 @@
-package com.rozen.ui;
+package com.rozen.model;
 
 import java.util.HashMap;
 import java.util.HashSet;

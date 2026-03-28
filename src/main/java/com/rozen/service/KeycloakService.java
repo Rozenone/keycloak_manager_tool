@@ -1,7 +1,7 @@
 package com.rozen.service;
 
-import com.rozen.ui.ClientInfo;
-import com.rozen.ui.UserInfo;
+import com.rozen.model.ClientInfo;
+import com.rozen.model.UserInfo;
 
 import jakarta.ws.rs.client.Client;
 import jakarta.ws.rs.client.ClientBuilder;

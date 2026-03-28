@@ -1,5 +1,7 @@
 package com.rozen.ui;
 
+import com.rozen.model.ClientInfo;
+import com.rozen.model.UserInfo;
 import com.rozen.service.ConfigStorage;
 import com.rozen.service.ConfigStorage.AuthType;
 import com.rozen.service.KeycloakService;

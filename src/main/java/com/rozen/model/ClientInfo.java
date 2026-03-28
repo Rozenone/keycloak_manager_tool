@@ -1,4 +1,4 @@
-package com.rozen.ui;
+package com.rozen.model;
 
 public class ClientInfo {
     private String id;
