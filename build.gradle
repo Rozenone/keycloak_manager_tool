@@ -18,7 +18,12 @@ dependencies {
     testImplementation platform('org.junit:junit-bom:5.10.0')
     testImplementation 'org.junit.jupiter:junit-jupiter'
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
-    implementation("org.keycloak:keycloak-admin-client:26.0.8")
+    implementation("org.keycloak:keycloak-admin-client:26.0.8") {
+        exclude group: 'org.jboss.resteasy', module: 'resteasy-client'
+        exclude group: 'org.jboss.resteasy', module: 'resteasy-jackson2-provider'
+    }
+    implementation("org.jboss.resteasy:resteasy-client:6.2.7.Final")
+    implementation("org.jboss.resteasy:resteasy-jackson2-provider:6.2.7.Final")
     implementation("jakarta.ws.rs:jakarta.ws.rs-api:3.1.0")
 }
 

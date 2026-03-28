@@ -5,9 +5,26 @@ import com.rozen.ui.ConfigSelectionDialog;
 import com.rozen.ui.KeycloakClientManagerUI;
 
 import javax.swing.*;
+import java.io.InputStream;
+import java.util.logging.Level;
+import java.util.logging.LogManager;
+import java.util.logging.Logger;
 
 public class Main {
     public static void main(String[] args) {
+        // 从资源文件加载日志配置
+        try (InputStream is = Main.class.getClassLoader().getResourceAsStream("logging.properties")) {
+            if (is != null) {
+                LogManager.getLogManager().readConfiguration(is);
+            }
+        } catch (Exception e) {
+            // 忽略配置加载错误
+        }
+
+        // 确保 RESTEasy 警告被禁用
+        Logger.getLogger("org.jboss.resteasy.core.providerfactory.ResteasyProviderFactoryImpl").setLevel(Level.SEVERE);
+        Logger.getLogger("org.jboss.resteasy").setLevel(Level.SEVERE);
+
         // 设置外观
         try {
             UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
