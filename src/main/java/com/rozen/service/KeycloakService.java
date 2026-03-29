@@ -604,16 +604,18 @@ public class KeycloakService implements AutoCloseable {
             }
         }
 
+        Response response = null;
         try {
-            Response response = usersResource.create(user);
+            response = usersResource.create(user);
             int status = response.getStatus();
             if (status != 201) {
-                String errorBody = response.readEntity(String.class);
+                String errorBody = readErrorResponse(response);
                 throw new RuntimeException("创建用户失败: HTTP " + status + " - " + errorBody);
             }
-            response.close();
-        } catch (Exception e) {
-            throw new RuntimeException("创建用户失败: " + e.getMessage(), e);
+        } finally {
+            if (response != null) {
+                response.close();
+            }
         }
     }
 
@@ -702,6 +704,42 @@ public class KeycloakService implements AutoCloseable {
         } catch (Exception e) {
             throw new RuntimeException("连接测试失败: " + e.getMessage(), e);
         }
+    }
+
+    /**
+     * 读取错误响应内容
+     * 处理 RESTEasy 无法直接读取 JSON 响应为 String 的问题
+     */
+    private String readErrorResponse(Response response) {
+        if (!response.hasEntity()) {
+            return "无错误详情";
+        }
+
+        try {
+            // 缓冲实体以允许多次读取
+            response.bufferEntity();
+
+            // 尝试读取为字符串
+            String entity = response.readEntity(String.class);
+            if (entity != null && !entity.isEmpty()) {
+                return entity;
+            }
+        } catch (Exception e) {
+            // 如果失败，尝试通过输入流读取
+            try {
+                Object entity = response.getEntity();
+                if (entity instanceof java.io.InputStream) {
+                    try (java.io.InputStream is = (java.io.InputStream) entity;
+                         java.util.Scanner scanner = new java.util.Scanner(is, "UTF-8")) {
+                        return scanner.useDelimiter("\\A").hasNext() ? scanner.next() : "";
+                    }
+                }
+            } catch (Exception ex) {
+                return "读取错误详情失败: " + ex.getMessage();
+            }
+        }
+
+        return "无法解析错误详情";
     }
 
     @Override

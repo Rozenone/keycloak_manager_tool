@@ -88,8 +88,8 @@ public class Main {
         I18nManager.getInstance().setLocale(language);
 
         // 设置系统默认locale（影响JOptionPane等系统对话框）
-        Locale.setDefault(I18nManager.getInstance().getCurrentLanguage() == I18nManager.Language.ENGLISH
-            ? Locale.ENGLISH
+        Locale.setDefault(I18nManager.getInstance().getCurrentLanguage() == I18nManager.Language.CHINESE
+            ? Locale.CHINESE
             : new Locale(language.getCode()));
     }
 }

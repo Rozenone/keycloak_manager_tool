@@ -111,6 +111,10 @@ public final class MessageConstants {
         public static final String EDIT_CONFIG = "dialog.config.editConfig";
         public static final String NAME_TOOLTIP = "dialog.config.nameTooltip";
         public static final String SERVER = "dialog.config.server";
+        public static final String USERNAME_LABEL = "dialog.config.usernameLabel";
+        public static final String PASSWORD_LABEL = "dialog.config.passwordLabel";
+        public static final String CLIENT_ID_LABEL = "dialog.config.clientIdLabel";
+        public static final String CLIENT_SECRET_LABEL = "dialog.config.clientSecretLabel";
     }
 
     // ==================== 认证类型 ====================
@@ -268,6 +272,7 @@ public final class MessageConstants {
         public static final String SELECT_CONFIG = "msg.selectConfig";
         public static final String CONFIRM_DELETE_CONFIG = "msg.confirmDeleteConfig";
         public static final String LOAD_CONFIG_FAILED = "msg.loadConfigFailed";
+        public static final String CREATE_DIR_FAILED = "msg.createDirFailed";
         public static final String SELECT_USER_FIRST = "msg.selectUserFirst";
         public static final String CONFIRM_DELETE_USER = "msg.confirmDeleteUser";
         public static final String CONFIRM_DELETE_CLIENT = "msg.confirmDeleteClient";

@@ -3,6 +3,8 @@ package com.rozen.service;
 import com.rozen.constant.MessageConstants;
 
 import java.io.*;
+
+import static com.rozen.service.I18nManager.t;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -18,33 +20,28 @@ public class ConfigStorage {
 
     // 登录方式枚举
     public enum AuthType {
-        USERNAME_PASSWORD("用户名密码"),
-        CLIENT_CREDENTIALS("客户端凭据");
-
-        private final String displayName;
-
-        AuthType(String displayName) {
-            this.displayName = displayName;
-        }
+        USERNAME_PASSWORD,
+        CLIENT_CREDENTIALS;
 
         public String getDisplayName() {
-            return displayName;
+            switch (this) {
+                case USERNAME_PASSWORD:
+                    return t(MessageConstants.Auth.USERNAME_PASSWORD);
+                case CLIENT_CREDENTIALS:
+                    return t(MessageConstants.Auth.CLIENT_CREDENTIALS);
+                default:
+                    return this.name();
+            }
         }
     }
 
     // 代理协议类型枚举
     public enum ProxyProtocol {
-        HTTP("HTTP"),
-        HTTPS("HTTPS");
-
-        private final String displayName;
-
-        ProxyProtocol(String displayName) {
-            this.displayName = displayName;
-        }
+        HTTP,
+        HTTPS;
 
         public String getDisplayName() {
-            return displayName;
+            return this.name();
         }
     }
 
@@ -143,7 +140,7 @@ public class ConfigStorage {
             try {
                 Files.createDirectories(dir);
             } catch (IOException e) {
-                throw new RuntimeException("无法创建配置目录: " + e.getMessage(), e);
+                throw new RuntimeException(t(MessageConstants.Msg.CREATE_DIR_FAILED) + ": " + e.getMessage(), e);
             }
         }
     }
@@ -224,7 +221,7 @@ public class ConfigStorage {
         ensureConfigDirExists();
         String name = config.getName();
         if (name == null || name.trim().isEmpty()) {
-            throw new IllegalArgumentException("配置名称不能为空");
+            throw new IllegalArgumentException(t(MessageConstants.Validation.NAME_REQUIRED));
         }
 
         // 更新索引文件
@@ -271,7 +268,7 @@ public class ConfigStorage {
         try (FileOutputStream fos = new FileOutputStream(configFile)) {
             props.store(fos, "Keycloak Manager Connection Configurations");
         } catch (IOException e) {
-            throw new RuntimeException("保存配置失败: " + e.getMessage(), e);
+            throw new RuntimeException(t(MessageConstants.Msg.SAVE_FAILED) + ": " + e.getMessage(), e);
         }
     }
 

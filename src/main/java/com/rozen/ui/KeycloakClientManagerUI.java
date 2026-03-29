@@ -477,7 +477,7 @@ public class KeycloakClientManagerUI extends JFrame {
 
     private JPanel createUsernamePasswordCard() {
         JPanel panel = new JPanel(new GridBagLayout());
-        panel.setBorder(BorderFactory.createTitledBorder("用户名密码认证"));
+        panel.setBorder(BorderFactory.createTitledBorder(t(MessageConstants.DialogConfig.USERNAME_PASSWORD)));
         GridBagConstraints gbc = new GridBagConstraints();
         gbc.insets = new Insets(5, 5, 5, 5);
         gbc.fill = GridBagConstraints.HORIZONTAL;
@@ -487,7 +487,7 @@ public class KeycloakClientManagerUI extends JFrame {
         gbc.gridx = 0;
         gbc.gridy = 0;
         gbc.weightx = 0;
-        panel.add(new JLabel("用户名 *:"), gbc);
+        panel.add(new JLabel(t(MessageConstants.DialogConfig.USERNAME_LABEL) + " *:"), gbc);
 
         gbc.gridx = 1;
         gbc.weightx = 1.0;
@@ -498,7 +498,7 @@ public class KeycloakClientManagerUI extends JFrame {
         gbc.gridx = 0;
         gbc.gridy = 1;
         gbc.weightx = 0;
-        panel.add(new JLabel("密码 *:"), gbc);
+        panel.add(new JLabel(t(MessageConstants.DialogConfig.PASSWORD_LABEL) + " *:"), gbc);
 
         gbc.gridx = 1;
         gbc.weightx = 1.0;
@@ -510,7 +510,7 @@ public class KeycloakClientManagerUI extends JFrame {
 
     private JPanel createClientCredentialsCard() {
         JPanel panel = new JPanel(new GridBagLayout());
-        panel.setBorder(BorderFactory.createTitledBorder("客户端凭据认证"));
+        panel.setBorder(BorderFactory.createTitledBorder(t(MessageConstants.DialogConfig.CLIENT_CREDENTIALS)));
         GridBagConstraints gbc = new GridBagConstraints();
         gbc.insets = new Insets(5, 5, 5, 5);
         gbc.fill = GridBagConstraints.HORIZONTAL;
@@ -520,7 +520,7 @@ public class KeycloakClientManagerUI extends JFrame {
         gbc.gridx = 0;
         gbc.gridy = 0;
         gbc.weightx = 0;
-        panel.add(new JLabel("客户端 ID *:"), gbc);
+        panel.add(new JLabel(t(MessageConstants.DialogConfig.CLIENT_ID_LABEL) + " *:"), gbc);
 
         gbc.gridx = 1;
         gbc.weightx = 1.0;
@@ -531,7 +531,7 @@ public class KeycloakClientManagerUI extends JFrame {
         gbc.gridx = 0;
         gbc.gridy = 1;
         gbc.weightx = 0;
-        panel.add(new JLabel("客户端密钥 *:"), gbc);
+        panel.add(new JLabel(t(MessageConstants.DialogConfig.CLIENT_SECRET_LABEL) + " *:"), gbc);
 
         gbc.gridx = 1;
         gbc.weightx = 1.0;
