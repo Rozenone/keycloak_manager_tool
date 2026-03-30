@@ -1,5 +1,6 @@
 package com.rozen.ui;
 
+import com.rozen.constant.MessageConstants;
 import com.rozen.service.ConfigStorage;
 import com.rozen.service.ConfigStorage.AuthType;
 import com.rozen.service.ConfigStorage.ProxyProtocol;
@@ -12,6 +13,7 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ItemEvent;
 
 import static com.rozen.ui.DialogUtil.*;
+import static com.rozen.service.I18nManager.t;
 
 public class ConfigSelectionDialog extends JDialog {
 
@@ -58,7 +60,7 @@ public class ConfigSelectionDialog extends JDialog {
     private String editingConfigName = null;
 
     public ConfigSelectionDialog(JFrame parent) {
-        super(parent, "选择 Keycloak 连接配置", true);
+        super(parent, t(MessageConstants.DialogConfig.TITLE), true);
         this.configStorage = new ConfigStorage();
 
         setSize(550, 650);
@@ -75,25 +77,25 @@ public class ConfigSelectionDialog extends JDialog {
         tabbedPane = new JTabbedPane();
 
         // 标签页1：选择已有配置
-        tabbedPane.addTab("选择已有配置", createSelectPanel());
+        tabbedPane.addTab(t(MessageConstants.DialogConfig.SELECT), createSelectPanel());
 
         // 标签页2：新建配置
-        tabbedPane.addTab("新建配置", createNewConfigPanel());
+        tabbedPane.addTab(t(MessageConstants.DialogConfig.NEW_CONFIG), createNewConfigPanel());
 
         panel.add(tabbedPane, BorderLayout.CENTER);
 
         // 按钮面板
         JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
 
-        JButton testBtn = new JButton("测试连接");
+        JButton testBtn = new JButton(t(MessageConstants.Button.TEST));
         testBtn.addActionListener(this::onTestConnection);
         buttonPanel.add(testBtn);
 
-        JButton connectBtn = new JButton("连接");
+        JButton connectBtn = new JButton(t(MessageConstants.Button.CONNECT));
         connectBtn.addActionListener(this::onConnect);
         buttonPanel.add(connectBtn);
 
-        JButton cancelBtn = new JButton("退出");
+        JButton cancelBtn = new JButton(t(MessageConstants.Button.EXIT));
         cancelBtn.addActionListener(e -> System.exit(0));
         buttonPanel.add(cancelBtn);
 
@@ -141,11 +143,11 @@ public class ConfigSelectionDialog extends JDialog {
         // 操作按钮
         JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
 
-        JButton editBtn = new JButton("编辑选中配置");
+        JButton editBtn = new JButton(t(MessageConstants.DialogConfig.EDIT));
         editBtn.addActionListener(this::onEdit);
         buttonPanel.add(editBtn);
 
-        JButton deleteBtn = new JButton("删除选中配置");
+        JButton deleteBtn = new JButton(t(MessageConstants.DialogConfig.DELETE));
         deleteBtn.addActionListener(this::onDelete);
         buttonPanel.add(deleteBtn);
 
@@ -173,7 +175,7 @@ public class ConfigSelectionDialog extends JDialog {
 
         // ========== 基本配置区域 ==========
         JPanel basicPanel = new JPanel(new GridBagLayout());
-        basicPanel.setBorder(BorderFactory.createTitledBorder("基本配置"));
+        basicPanel.setBorder(BorderFactory.createTitledBorder(t(MessageConstants.DialogConfig.BASIC)));
         GridBagConstraints gbcBasic = new GridBagConstraints();
         gbcBasic.insets = new Insets(5, 5, 5, 5);
         gbcBasic.fill = GridBagConstraints.HORIZONTAL;
@@ -183,7 +185,7 @@ public class ConfigSelectionDialog extends JDialog {
         gbcBasic.gridx = 0;
         gbcBasic.gridy = 0;
         gbcBasic.weightx = 0;
-        basicPanel.add(new JLabel("配置名称 *:"), gbcBasic);
+        basicPanel.add(new JLabel(t(MessageConstants.DialogConfig.NAME) + " *:"), gbcBasic);
 
         gbcBasic.gridx = 1;
         gbcBasic.weightx = 1.0;
@@ -194,7 +196,7 @@ public class ConfigSelectionDialog extends JDialog {
         gbcBasic.gridx = 0;
         gbcBasic.gridy = 1;
         gbcBasic.weightx = 0;
-        basicPanel.add(new JLabel("服务器地址 *:"), gbcBasic);
+        basicPanel.add(new JLabel(t(MessageConstants.DialogConfig.SERVER_URL) + " *:"), gbcBasic);
 
         gbcBasic.gridx = 1;
         gbcBasic.weightx = 1.0;
@@ -205,7 +207,7 @@ public class ConfigSelectionDialog extends JDialog {
         gbcBasic.gridx = 0;
         gbcBasic.gridy = 2;
         gbcBasic.weightx = 0;
-        basicPanel.add(new JLabel("Realm *:"), gbcBasic);
+        basicPanel.add(new JLabel(t(MessageConstants.DialogConfig.REALM) + " *:"), gbcBasic);
 
         gbcBasic.gridx = 1;
         gbcBasic.weightx = 1.0;
@@ -218,11 +220,11 @@ public class ConfigSelectionDialog extends JDialog {
 
         // ========== 认证配置区域 ==========
         JPanel authPanel = new JPanel(new BorderLayout(5, 5));
-        authPanel.setBorder(BorderFactory.createTitledBorder("认证配置"));
+        authPanel.setBorder(BorderFactory.createTitledBorder(t(MessageConstants.DialogConfig.AUTH)));
 
         // 登录方式选择
         JPanel authTypePanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
-        authTypePanel.add(new JLabel("登录方式:"));
+        authTypePanel.add(new JLabel(t(MessageConstants.DialogConfig.AUTH_TYPE) + ":"));
         authTypeComboBox = new JComboBox<>(AuthType.values());
         authTypeComboBox.setRenderer(new DefaultListCellRenderer() {
             @Override
@@ -258,7 +260,7 @@ public class ConfigSelectionDialog extends JDialog {
 
         // ========== 代理配置区域 ==========
         JPanel proxyPanel = new JPanel(new GridBagLayout());
-        proxyPanel.setBorder(BorderFactory.createTitledBorder("代理配置"));
+        proxyPanel.setBorder(BorderFactory.createTitledBorder(t(MessageConstants.DialogConfig.PROXY)));
         GridBagConstraints gbcProxy = new GridBagConstraints();
         gbcProxy.insets = new Insets(5, 5, 5, 5);
         gbcProxy.fill = GridBagConstraints.HORIZONTAL;
@@ -268,11 +270,11 @@ public class ConfigSelectionDialog extends JDialog {
         gbcProxy.gridx = 0;
         gbcProxy.gridy = 0;
         gbcProxy.weightx = 0;
-        proxyPanel.add(new JLabel("使用代理:"), gbcProxy);
+        proxyPanel.add(new JLabel(t(MessageConstants.DialogConfig.USE_PROXY) + ":"), gbcProxy);
 
         gbcProxy.gridx = 1;
         gbcProxy.weightx = 1.0;
-        useProxyCheckBox = new JCheckBox("启用 HTTP/HTTPS 代理");
+        useProxyCheckBox = new JCheckBox(t(MessageConstants.DialogConfig.ENABLE_PROXY));
         useProxyCheckBox.addItemListener(this::onUseProxyChanged);
         proxyPanel.add(useProxyCheckBox, gbcProxy);
 
@@ -280,7 +282,7 @@ public class ConfigSelectionDialog extends JDialog {
         gbcProxy.gridx = 0;
         gbcProxy.gridy = 1;
         gbcProxy.weightx = 0;
-        proxyPanel.add(new JLabel("代理协议:"), gbcProxy);
+        proxyPanel.add(new JLabel(t(MessageConstants.DialogConfig.PROXY_PROTOCOL) + ":"), gbcProxy);
 
         gbcProxy.gridx = 1;
         gbcProxy.weightx = 1.0;
@@ -303,7 +305,7 @@ public class ConfigSelectionDialog extends JDialog {
         gbcProxy.gridx = 0;
         gbcProxy.gridy = 2;
         gbcProxy.weightx = 0;
-        proxyPanel.add(new JLabel("代理主机:"), gbcProxy);
+        proxyPanel.add(new JLabel(t(MessageConstants.DialogConfig.PROXY_HOST) + ":"), gbcProxy);
 
         gbcProxy.gridx = 1;
         gbcProxy.weightx = 1.0;
@@ -315,7 +317,7 @@ public class ConfigSelectionDialog extends JDialog {
         gbcProxy.gridx = 0;
         gbcProxy.gridy = 3;
         gbcProxy.weightx = 0;
-        proxyPanel.add(new JLabel("代理端口:"), gbcProxy);
+        proxyPanel.add(new JLabel(t(MessageConstants.DialogConfig.PROXY_PORT) + ":"), gbcProxy);
 
         gbcProxy.gridx = 1;
         gbcProxy.weightx = 1.0;
@@ -330,7 +332,7 @@ public class ConfigSelectionDialog extends JDialog {
 
         // ========== SSL 配置区域 ==========
         JPanel sslPanel = new JPanel(new GridBagLayout());
-        sslPanel.setBorder(BorderFactory.createTitledBorder("SSL 配置"));
+        sslPanel.setBorder(BorderFactory.createTitledBorder(t(MessageConstants.DialogConfig.SSL)));
         GridBagConstraints gbcSsl = new GridBagConstraints();
         gbcSsl.insets = new Insets(5, 5, 5, 5);
         gbcSsl.fill = GridBagConstraints.HORIZONTAL;
@@ -340,11 +342,11 @@ public class ConfigSelectionDialog extends JDialog {
         gbcSsl.gridx = 0;
         gbcSsl.gridy = 0;
         gbcSsl.weightx = 0;
-        sslPanel.add(new JLabel("跳过 SSL 验证:"), gbcSsl);
+        sslPanel.add(new JLabel(t(MessageConstants.DialogConfig.SKIP_SSL) + ":"), gbcSsl);
 
         gbcSsl.gridx = 1;
         gbcSsl.weightx = 1.0;
-        skipSslCheckBox = new JCheckBox("启用（用于自签名证书或 IP 地址访问）");
+        skipSslCheckBox = new JCheckBox(t(MessageConstants.DialogConfig.SKIP_SSL_HINT));
         sslPanel.add(skipSslCheckBox, gbcSsl);
 
         gbc.gridx = 0;
@@ -365,7 +367,7 @@ public class ConfigSelectionDialog extends JDialog {
 
     private JPanel createUsernamePasswordCard() {
         JPanel panel = new JPanel(new GridBagLayout());
-        panel.setBorder(BorderFactory.createTitledBorder("用户名密码认证"));
+        panel.setBorder(BorderFactory.createTitledBorder(t(MessageConstants.DialogConfig.USERNAME_PASSWORD)));
         GridBagConstraints gbc = new GridBagConstraints();
         gbc.insets = new Insets(5, 5, 5, 5);
         gbc.fill = GridBagConstraints.HORIZONTAL;
@@ -375,7 +377,7 @@ public class ConfigSelectionDialog extends JDialog {
         gbc.gridx = 0;
         gbc.gridy = 0;
         gbc.weightx = 0;
-        panel.add(new JLabel("用户名 *:"), gbc);
+        panel.add(new JLabel(t(MessageConstants.DialogConfig.USERNAME) + " *:"), gbc);
 
         gbc.gridx = 1;
         gbc.weightx = 1.0;
@@ -386,7 +388,7 @@ public class ConfigSelectionDialog extends JDialog {
         gbc.gridx = 0;
         gbc.gridy = 1;
         gbc.weightx = 0;
-        panel.add(new JLabel("密码 *:"), gbc);
+        panel.add(new JLabel(t(MessageConstants.DialogConfig.PASSWORD) + " *:"), gbc);
 
         gbc.gridx = 1;
         gbc.weightx = 1.0;
@@ -398,7 +400,7 @@ public class ConfigSelectionDialog extends JDialog {
 
     private JPanel createClientCredentialsCard() {
         JPanel panel = new JPanel(new GridBagLayout());
-        panel.setBorder(BorderFactory.createTitledBorder("客户端凭据认证"));
+        panel.setBorder(BorderFactory.createTitledBorder(t(MessageConstants.DialogConfig.CLIENT_CREDENTIALS)));
         GridBagConstraints gbc = new GridBagConstraints();
         gbc.insets = new Insets(5, 5, 5, 5);
         gbc.fill = GridBagConstraints.HORIZONTAL;
@@ -408,7 +410,7 @@ public class ConfigSelectionDialog extends JDialog {
         gbc.gridx = 0;
         gbc.gridy = 0;
         gbc.weightx = 0;
-        panel.add(new JLabel("客户端 ID *:"), gbc);
+        panel.add(new JLabel(t(MessageConstants.DialogConfig.CLIENT_ID) + " *:"), gbc);
 
         gbc.gridx = 1;
         gbc.weightx = 1.0;
@@ -419,7 +421,7 @@ public class ConfigSelectionDialog extends JDialog {
         gbc.gridx = 0;
         gbc.gridy = 1;
         gbc.weightx = 0;
-        panel.add(new JLabel("客户端密钥 *:"), gbc);
+        panel.add(new JLabel(t(MessageConstants.DialogConfig.CLIENT_SECRET) + " *:"), gbc);
 
         gbc.gridx = 1;
         gbc.weightx = 1.0;
@@ -500,26 +502,26 @@ public class ConfigSelectionDialog extends JDialog {
     private boolean validateConfig(ConfigStorage.ConnectionConfig config) {
         // 验证必填项
         if (config.getName().isEmpty() || config.getServerUrl().isEmpty() || config.getRealm().isEmpty()) {
-            showError(this, "错误", "请填写所有必填项（配置名称、服务器地址、Realm）");
+            showError(this, t(MessageConstants.Msg.ERROR), t(MessageConstants.Validation.SERVER_URL_AND_REALM_REQUIRED));
             return false;
         }
 
         // 根据登录方式验证对应字段
         if (config.getAuthType() == AuthType.USERNAME_PASSWORD) {
             if (config.getUsername().isEmpty() || config.getPassword().isEmpty()) {
-                showError(this, "错误", "请填写用户名和密码");
+                showError(this, t(MessageConstants.Msg.ERROR), t(MessageConstants.Validation.USERNAME_AND_PASSWORD_REQUIRED));
                 return false;
             }
         } else {
             if (config.getClientId().isEmpty() || config.getClientSecret().isEmpty()) {
-                showError(this, "错误", "请填写客户端 ID 和客户端密钥");
+                showError(this, t(MessageConstants.Msg.ERROR), t(MessageConstants.Validation.CLIENT_ID_AND_SECRET_REQUIRED));
                 return false;
             }
         }
 
         // 验证代理配置
         if (config.isUseProxy() && config.getProxyHost().isEmpty()) {
-            showError(this, "错误", "请填写代理主机地址");
+            showError(this, t(MessageConstants.Msg.ERROR), t(MessageConstants.Validation.PROXY_HOST_REQUIRED));
             return false;
         }
 
@@ -533,7 +535,7 @@ public class ConfigSelectionDialog extends JDialog {
         if (selectedTab == 0) {
             // 从列表选择
             if (selectedConfig == null) {
-                showWarning(this, "提示", "请选择一个配置或使用新建配置标签页");
+                showWarning(this, t(MessageConstants.Msg.WARNING), t(MessageConstants.Msg.NO_SELECTION));
                 return;
             }
             testConfig = selectedConfig;
@@ -546,7 +548,7 @@ public class ConfigSelectionDialog extends JDialog {
         }
 
         // 显示测试中的提示
-        setTitle("选择 Keycloak 连接配置 - 正在测试连接...");
+        setTitle(t(MessageConstants.DialogConfig.TITLE) + " - " + t(MessageConstants.Status.TESTING_CONNECTION));
 
         // 在后台线程中执行连接测试
         ConfigStorage.ConnectionConfig finalTestConfig = testConfig;
@@ -559,17 +561,17 @@ public class ConfigSelectionDialog extends JDialog {
                 try (KeycloakService testService = KeycloakService.fromConfig(finalTestConfig)) {
                     // 尝试获取服务器信息来验证连接
                     testService.getClients();
-                    resultMessage = "连接测试成功！\n\n" +
-                            "服务器: " + finalTestConfig.getServerUrl() + "\n" +
-                            "Realm: " + finalTestConfig.getRealm() + "\n" +
-                            "登录方式: " + finalTestConfig.getAuthType().getDisplayName();
+                    resultMessage = t(MessageConstants.Connection.TEST_SUCCESS_TITLE) + "\n\n" +
+                            t(MessageConstants.Connection.SUCCESS_SERVER) + ": " + finalTestConfig.getServerUrl() + "\n" +
+                            t(MessageConstants.Connection.SUCCESS_REALM) + ": " + finalTestConfig.getRealm() + "\n" +
+                            t(MessageConstants.Connection.SUCCESS_AUTH_TYPE) + ": " + finalTestConfig.getAuthType().getDisplayName();
                     if (finalTestConfig.isUseProxy()) {
-                        resultMessage += "\n代理: " + finalTestConfig.getProxyProtocol().getDisplayName() +
+                        resultMessage += "\n" + t(MessageConstants.Connection.SUCCESS_PROXY) + ": " + finalTestConfig.getProxyProtocol().getDisplayName() +
                                 "://" + finalTestConfig.getProxyHost() + ":" + finalTestConfig.getProxyPort();
                     }
                     isSuccess = true;
                 } catch (Exception ex) {
-                    resultMessage = "连接测试失败！\n\n错误信息: " + ex.getMessage();
+                    resultMessage = t(MessageConstants.Connection.TEST_FAILED_TITLE) + "\n\n" + t(MessageConstants.Connection.FAILED_ERROR_INFO) + ": " + ex.getMessage();
                     isSuccess = false;
                 }
                 return null;
@@ -577,11 +579,11 @@ public class ConfigSelectionDialog extends JDialog {
 
             @Override
             protected void done() {
-                setTitle("选择 Keycloak 连接配置");
+                setTitle(t(MessageConstants.DialogConfig.TITLE));
                 if (isSuccess) {
-                    showInfo(ConfigSelectionDialog.this, "连接测试结果", resultMessage);
+                    showInfo(ConfigSelectionDialog.this, t(MessageConstants.Dialog.CONNECTION_TEST_RESULT), resultMessage);
                 } else {
-                    showError(ConfigSelectionDialog.this, "连接测试结果", resultMessage);
+                    showError(ConfigSelectionDialog.this, t(MessageConstants.Dialog.CONNECTION_TEST_RESULT), resultMessage);
                 }
             }
         };
@@ -595,7 +597,7 @@ public class ConfigSelectionDialog extends JDialog {
         if (selectedTab == 0) {
             // 从列表选择
             if (selectedConfig == null) {
-                showWarning(this, "提示", "请选择一个配置");
+                showWarning(this, t(MessageConstants.Msg.WARNING), t(MessageConstants.Msg.NO_SELECTION));
                 return;
             }
         } else {
@@ -618,12 +620,12 @@ public class ConfigSelectionDialog extends JDialog {
             editingConfigName = null;
             nameField.setEditable(true);
             nameField.setToolTipText(null);
-            tabbedPane.setTitleAt(1, "新建配置");
+            tabbedPane.setTitleAt(1, t(MessageConstants.DialogConfig.NEW_CONFIG));
         }
 
         // 测试连接
         ConfigStorage.ConnectionConfig finalConfig = selectedConfig;
-        setTitle("选择 Keycloak 连接配置 - 正在连接...");
+        setTitle(t(MessageConstants.DialogConfig.TITLE) + " - " + t(MessageConstants.Status.CONNECTING));
 
         SwingWorker<Void, Void> worker = new SwingWorker<>() {
             private String resultMessage;
@@ -634,17 +636,17 @@ public class ConfigSelectionDialog extends JDialog {
                 try (KeycloakService testService = KeycloakService.fromConfig(finalConfig)) {
                     // 尝试获取服务器信息来验证连接
                     testService.getClients();
-                    resultMessage = "连接成功！\n\n" +
-                            "服务器: " + finalConfig.getServerUrl() + "\n" +
-                            "Realm: " + finalConfig.getRealm() + "\n" +
-                            "登录方式: " + finalConfig.getAuthType().getDisplayName();
+                    resultMessage = t(MessageConstants.Connection.SUCCESS_TITLE) + "\n\n" +
+                            t(MessageConstants.Connection.SUCCESS_SERVER) + ": " + finalConfig.getServerUrl() + "\n" +
+                            t(MessageConstants.Connection.SUCCESS_REALM) + ": " + finalConfig.getRealm() + "\n" +
+                            t(MessageConstants.Connection.SUCCESS_AUTH_TYPE) + ": " + finalConfig.getAuthType().getDisplayName();
                     if (finalConfig.isUseProxy()) {
-                        resultMessage += "\n代理: " + finalConfig.getProxyProtocol().getDisplayName() +
+                        resultMessage += "\n" + t(MessageConstants.Connection.SUCCESS_PROXY) + ": " + finalConfig.getProxyProtocol().getDisplayName() +
                                 "://" + finalConfig.getProxyHost() + ":" + finalConfig.getProxyPort();
                     }
                     isSuccess = true;
                 } catch (Exception ex) {
-                    resultMessage = "连接失败！\n\n错误信息: " + ex.getMessage();
+                    resultMessage = t(MessageConstants.Connection.FAILED_TITLE) + "\n\n" + t(MessageConstants.Connection.FAILED_ERROR_INFO) + ": " + ex.getMessage();
                     isSuccess = false;
                 }
                 return null;
@@ -652,15 +654,15 @@ public class ConfigSelectionDialog extends JDialog {
 
             @Override
             protected void done() {
-                setTitle("选择 Keycloak 连接配置");
+                setTitle(t(MessageConstants.DialogConfig.TITLE));
                 if (isSuccess) {
-                    showInfo(ConfigSelectionDialog.this, "连接结果", resultMessage);
+                    showInfo(ConfigSelectionDialog.this, t(MessageConstants.Msg.CONNECTION_SUCCESS), resultMessage);
                     // 刷新配置列表（编辑模式下配置已保存，需要刷新显示）
                     loadSavedConfigs();
                     confirmed = true;
                     dispose();
                 } else {
-                    showError(ConfigSelectionDialog.this, "连接结果", resultMessage);
+                    showError(ConfigSelectionDialog.this, t(MessageConstants.Msg.CONNECTION_FAILED), resultMessage);
                     // 连接失败时不关闭对话框，让用户可以修改配置
                 }
             }
@@ -672,14 +674,14 @@ public class ConfigSelectionDialog extends JDialog {
     private void onEdit(ActionEvent e) {
         String selectedName = configList.getSelectedValue();
         if (selectedName == null) {
-            showWarning(this, "提示", "请选择一个配置");
+            showWarning(this, t(MessageConstants.Msg.HINT), t(MessageConstants.Msg.SELECT_CONFIG));
             return;
         }
 
         // 加载选中的配置
         ConfigStorage.ConnectionConfig config = configStorage.loadConfig(selectedName);
         if (config == null) {
-            showError(this, "错误", "无法加载配置: " + selectedName);
+            showError(this, t(MessageConstants.Msg.ERROR), t(MessageConstants.Msg.LOAD_CONFIG_FAILED) + ": " + selectedName);
             return;
         }
 
@@ -692,11 +694,11 @@ public class ConfigSelectionDialog extends JDialog {
 
         // 切换到新建配置标签页（现在用于编辑）
         tabbedPane.setSelectedIndex(1);
-        tabbedPane.setTitleAt(1, "编辑配置: " + selectedName);
+        tabbedPane.setTitleAt(1, t(MessageConstants.DialogConfig.EDIT_CONFIG) + ": " + selectedName);
 
         // 配置名称字段设为不可编辑（作为标识）
         nameField.setEditable(false);
-        nameField.setToolTipText("配置名称不可修改，如需改名请删除后重新创建");
+        nameField.setToolTipText(t(MessageConstants.DialogConfig.NAME_TOOLTIP));
     }
 
     private void loadConfigToFields(ConfigStorage.ConnectionConfig config) {
@@ -736,13 +738,13 @@ public class ConfigSelectionDialog extends JDialog {
     private void onDelete(ActionEvent e) {
         String selectedName = configList.getSelectedValue();
         if (selectedName == null) {
-            showWarning(this, "提示", "请选择一个配置");
+            showWarning(this, t(MessageConstants.Msg.HINT), t(MessageConstants.Msg.SELECT_CONFIG));
             return;
         }
 
         int confirm = JOptionPane.showConfirmDialog(this,
-            "确定要删除配置 '" + selectedName + "' 吗?",
-            "确认删除",
+            t(MessageConstants.Msg.CONFIRM_DELETE_CONFIG) + " '" + selectedName + "'?",
+            t(MessageConstants.Msg.CONFIRM_DELETE),
             JOptionPane.YES_NO_OPTION);
 
         if (confirm == JOptionPane.YES_OPTION) {
