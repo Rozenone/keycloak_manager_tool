@@ -45,7 +45,7 @@ public class KeycloakClientManagerUI extends JFrame {
 
     // 分页相关
     private int currentPage = 0;
-    private int pageSize = 20;
+    private int pageSize = 50;
     private int totalUsers = 0;
     private JLabel pageInfoLabel;
     private JButton prevPageBtn;

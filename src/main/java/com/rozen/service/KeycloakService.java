@@ -313,7 +313,6 @@ public class KeycloakService implements AutoCloseable {
         public List<T> getContent() { return content; }
         public int getTotalCount() { return totalCount; }
         public int getPage() { return page; }
-        public int getPageSize() { return pageSize; }
         public int getTotalPages() {
             return (int) Math.ceil((double) totalCount / pageSize);
         }
